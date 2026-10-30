@@ -22,3 +22,20 @@ I tend to keep the installation itself fairly generic/vanilla and then deal with
 
 
 
+
+## First boot: enable SSH (manual step)
+
+After the first reboot, it is **expected** that the graphical desktop does not start and sshd is **not** running. This is normal for this hardware/install method and is not a problem. You need to log in at the console (try **Ctrl+Alt+F3** if the screen is blank) and enable sshd by hand:
+
+```bash
+sudo systemctl enable sshd --now
+```
+
+If you still can't connect, make sure the firewall allows SSH:
+
+```bash
+sudo firewall-cmd --list-services
+sudo firewall-cmd --permanent --add-service=ssh && sudo firewall-cmd --reload
+```
+
+From then on, you can do everything else (bootstrap script, Ansible) over SSH.
