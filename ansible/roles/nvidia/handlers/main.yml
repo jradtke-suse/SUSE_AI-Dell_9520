@@ -1,0 +1,4 @@
+---
+- name: reboot required
+  ansible.builtin.debug:
+    msg: "A reboot is required to load the NVIDIA kernel module (not rebooting automatically)."

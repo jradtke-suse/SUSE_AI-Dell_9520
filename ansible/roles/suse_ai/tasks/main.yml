@@ -1,0 +1,8 @@
+---
+# TODO: placeholder. See docs/05-suse-ai.md.
+# 1. NVIDIA GPU Operator (driver.enabled=false, toolkit pointed at RKE2 containerd)
+# 2. Application Collection registry login
+# 3. Ollama / Open WebUI / Milvus via Helm
+- name: SUSE AI role placeholder
+  ansible.builtin.debug:
+    msg: "suse_ai role not implemented yet"

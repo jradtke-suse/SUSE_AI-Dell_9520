@@ -1,0 +1,13 @@
+---
+- name: SUSE AI on Dell XPS 15 9520
+  hosts: all
+  roles:
+    - role: base
+      tags: [base]
+    - role: nvidia
+      tags: [nvidia]
+    - role: rke2
+      tags: [rke2]
+    - role: suse_ai
+      tags: [suse_ai]
+      when: suse_ai_enabled | bool

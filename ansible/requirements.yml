@@ -1,0 +1,5 @@
+---
+collections:
+  - name: community.general     # zypper, zypper_repository
+  - name: ansible.posix         # firewalld, selinux
+  - name: kubernetes.core       # helm, k8s (suse_ai role)

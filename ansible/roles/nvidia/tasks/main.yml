@@ -1,0 +1,33 @@
+---
+- name: Install NVIDIA kernel module package ({{ nvidia_driver_flavor }})
+  community.general.zypper:
+    name: "{{ nvidia_kmp_package[nvidia_driver_flavor] }}"
+    state: present
+  notify: reboot required
+
+- name: Detect installed driver version (compute utils must match it)
+  ansible.builtin.shell: |
+    set -o pipefail
+    rpm -q --queryformat '%{VERSION}\n' {{ nvidia_kmp_package[nvidia_driver_flavor] }} | cut -d_ -f1
+  args:
+    executable: /bin/bash
+  register: nvidia_kmp_version
+  changed_when: false
+
+- name: Add NVIDIA repo
+  community.general.zypper_repository:
+    name: "{{ nvidia_repo_name }}"
+    repo: "{{ nvidia_repo_url }}"
+    auto_import_keys: true
+    autorefresh: true
+    state: present
+
+- name: Install matching NVIDIA compute utils
+  community.general.zypper:
+    name: "{{ nvidia_compute_packages | map('regex_replace', '$', '=' ~ nvidia_kmp_version.stdout) | list }}"
+    state: present
+  notify: reboot required
+
+- name: Show driver version
+  ansible.builtin.debug:
+    msg: "NVIDIA driver {{ nvidia_kmp_version.stdout }} installed. Reboot, then run nvidia-smi."

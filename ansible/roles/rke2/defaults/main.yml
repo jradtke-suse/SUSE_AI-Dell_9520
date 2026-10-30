@@ -1,0 +1,5 @@
+---
+rke2_firewall_ports:
+  - 6443/tcp
+  - 9345/tcp
+  - 10250/tcp
