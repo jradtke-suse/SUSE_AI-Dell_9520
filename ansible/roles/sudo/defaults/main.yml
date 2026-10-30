@@ -1,0 +1,4 @@
+---
+# Users that get passwordless sudo
+sudo_nopasswd_users:
+  - "{{ ansible_user }}"

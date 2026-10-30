@@ -1,0 +1,14 @@
+---
+# SLES 16 ships `Defaults targetpw`, so sudo asks for ROOT's password.
+# The first run needs -K (enter the root password). Later runs don't.
+- name: Grant passwordless sudo
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/90-nopasswd-{{ item }}"
+    content: |
+      # Managed by Ansible
+      {{ item }} ALL=(ALL) NOPASSWD: ALL
+    owner: root
+    group: root
+    mode: "0440"
+    validate: /usr/sbin/visudo -cf %s
+  loop: "{{ sudo_nopasswd_users }}"
