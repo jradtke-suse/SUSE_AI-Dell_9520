@@ -39,3 +39,8 @@ scc_extensions: []
 repos_remove_install_media: true   # drop the hd:/cd:/dvd:/iso: repo left by the installer
 repos_extra: []                    # [{name: foo, url: https://...}]
 repos_update_system: true          # zypper patch after repos are in place
+
+# ---- SUSE Application Collection (SUSE AI components) ----
+appco_registry: dp.apps.rancher.io
+appco_username: "{{ vault_appco_username | default('') }}"
+appco_token: "{{ vault_appco_token | default('') }}"
