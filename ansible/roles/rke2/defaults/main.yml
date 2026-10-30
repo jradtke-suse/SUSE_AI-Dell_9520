@@ -1,4 +1,20 @@
 ---
+# SUSE AI 1.0 guide section 2.3, single server node
+# Prime artifacts: public, no credentials (verified 2026-10-30)
+rke2_artifact_url: https://prime.ribs.rancher.io
+
+# SELinux is Enforcing on SLES 16. rke2-selinux comes from Rancher's RPM repo.
+# Use the `sle` build (not `slemicro`): it requires selinux-policy-base >= 20230523,
+# which matches SLES 16's newer policy.
+rke2_selinux: true
+rke2_selinux_repo_url: https://rpm.rancher.io/rke2/stable/common/sle/noarch
+rke2_selinux_gpg_key: https://rpm.rancher.io/public.key
+
+rke2_config:
+  system-default-registry: registry.rancher.com
+  selinux: "{{ rke2_selinux }}"
+  write-kubeconfig-mode: "0644"
+
 rke2_firewall_ports:
   - 6443/tcp
   - 9345/tcp

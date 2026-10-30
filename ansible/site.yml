@@ -4,6 +4,10 @@
   roles:
     - role: sudo
       tags: [sudo]
+    - role: registration
+      tags: [registration]
+    - role: repos
+      tags: [repos]
     - role: base
       tags: [base]
     - role: nvidia

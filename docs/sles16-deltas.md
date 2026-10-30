@@ -1,0 +1,20 @@
+# SLES 16 vs the SUSE AI 1.0 guide (SLES 15 SP6)
+
+Reference: [SUSE AI 1.0: Installing the Linux and Kubernetes distribution](https://documentation.suse.com/suse-ai/1.0/html/AI-deployment/ai-deployment-kube-installing.html)
+
+The guide targets SLES 15 SP6 (or SL Micro 6.1). We're on **SLES 16.0**. Each difference below was checked on `wheatley` on 2026-10-30 unless it's marked _verify_.
+
+| Area | Guide (15 SP6) | SLES 16.0 reality | What we do |
+|------|----------------|-------------------|------------|
+| Installer | YaST, pick modules (Basesystem, Server Apps, Python 3) | Agama installer, no module selection. Extensions are only HA and PackageHub. | Default install. Register after install with the `registration` role. |
+| sudo | n/a | `Defaults targetpw` (asks for root's password) | `sudo` role adds NOPASSWD. First run uses `-K` with the root password. |
+| sshd | enabled | Not running after first boot | Enable manually at the console (see 01) |
+| Open driver package | `nv-prefer-signed-open-driver` from SUSE repos | **Same package exists** in `SLE-Product-SLES-16.0` (580.178.04 latest) | Same as the guide |
+| NVIDIA CUDA repo | `.../cuda/repos/sles15/x86_64/` | `.../repos/sles16/x86_64/` exists but has **no driver userspace** (only cuVS). SLES 16 repos have no `nvidia-compute-utils-G06` either. | **Use the `sles15` repo** for `nvidia-compute-utils-G06` + `nvidia-persistenced`, pinned to the KMP version. _Revisit when NVIDIA fills the sles16 repo._ |
+| Version pinning | `rpm -qa ... nv-prefer-signed-open-driver \| cut -d_ -f1` | Same. The sles15 repo has newer versions (e.g. 580.196.07) than the SUSE KMP, so pinning is **required**. | Ansible pins `=<kmp version>` |
+| KMP kernel | n/a | Latest KMP is built against `k6.12.0_160000.37`. Running kernel after patching is `160000.40`. | Relies on kABI compatibility. _Verify `nvidia-smi` after reboot._ |
+| MAC framework | AppArmor (`apparmor-parser`) | **SELinux, Enforcing**. AppArmor not installed. `container-selinux` is in SLES 16, but `rke2-selinux` isn't. | Keep SELinux. Add Rancher repo `rpm.rancher.io/rke2/stable/common/sle/noarch` (the `sle` build, not `slemicro`: it needs policy ≥ 20230523, SLES 16 has 20250627), install `rke2-selinux`, set `selinux: true` |
+| NetworkManager | "configure it to ignore CNI interfaces" | NM is active | Drop `/etc/NetworkManager/conf.d/rke2-canal.conf` (`unmanaged-devices=interface-name:flannel*;interface-name:cali*`) |
+| RKE2 source | get.rke2.io with `INSTALL_RKE2_ARTIFACT_URL=<PRIME-ARTIFACTS-URL>/rke2` | Same. `https://prime.ribs.rancher.io` is public (no credentials) but has no directory listing, so only real versions return 200. | `rke2_artifact_url`, `INSTALL_RKE2_METHOD=tar`, then `restorecon` on the binaries |
+| RKE2 registry | `system-default-registry: registry.rancher.com` | Same | Written to `/etc/rancher/rke2/config.yaml` |
+| CPU governor | `performance` | Laptop: a trade-off with heat and battery | Optional, off by default |

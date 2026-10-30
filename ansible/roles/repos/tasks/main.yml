@@ -1,0 +1,52 @@
+---
+- name: Find repos pointing at install media
+  ansible.builtin.shell: |
+    set -o pipefail
+    zypper -q lr -u | awk -F'|' 'NR>2 && $NF ~ /^ *(hd|cd|dvd|iso):/ {gsub(/ /,"",$2); print $2}'
+  args:
+    executable: /bin/bash
+  register: install_media_repos
+  changed_when: false
+  check_mode: false
+  when: repos_remove_install_media | bool
+
+- name: Remove install media repos
+  ansible.builtin.command: zypper -n rr {{ item }}
+  loop: "{{ install_media_repos.stdout_lines | default([]) }}"
+  changed_when: true
+
+- name: Add extra repos
+  community.general.zypper_repository:
+    name: "{{ item.name }}"
+    repo: "{{ item.url }}"
+    auto_import_keys: true
+    autorefresh: true
+    state: present
+  loop: "{{ repos_extra }}"
+
+- name: Refresh repos
+  ansible.builtin.command: zypper -n --gpg-auto-import-keys refresh
+  changed_when: false
+
+- name: Apply patches
+  ansible.builtin.command: zypper -n patch --auto-agree-with-licenses --with-interactive  # include reboot-flagged (kernel/systemd/ucode) patches
+  register: zypper_patch
+  changed_when: "'Nothing to do' not in zypper_patch.stdout"
+  # rc 102/103 = success, reboot needed / zypper itself updated (run again)
+  failed_when: zypper_patch.rc not in [0, 102, 103]
+  until: zypper_patch.rc != 103   # re-run after zypper updates itself
+  retries: 3
+  delay: 0
+  when: repos_update_system | bool
+
+- name: Check whether a reboot is needed
+  ansible.builtin.command: zypper needs-rebooting
+  register: needs_reboot
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Reboot notice
+  ansible.builtin.debug:
+    msg: "Reboot recommended: {{ needs_reboot.stdout }}"
+  when: needs_reboot.rc != 0

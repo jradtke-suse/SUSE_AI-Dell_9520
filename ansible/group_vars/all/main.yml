@@ -1,0 +1,41 @@
+---
+# ---- base ----
+hostname: wheatley        # after the Portal character
+base_packages:
+  - vim
+  - curl
+  - jq
+  - htop
+  - pciutils
+  - mokutil
+  - tmux
+base_services:
+  - sshd
+  - chronyd
+  - firewalld
+firewall_ports: []          # rke2 role adds its own
+
+# ---- nvidia ----
+nvidia_install_gl: false    # nvidia-gl-G06, only if Vulkan is needed
+
+# ---- rke2 ----
+rke2_channel: stable        # or pin rke2_version
+rke2_version: ""
+
+# ---- suse_ai ----
+suse_ai_enabled: false      # flip on once RKE2 + GPU are verified
+
+# ---- registration (SCC direct) ----
+# Secrets live in group_vars/all/vault.yml (ansible-vault encrypted).
+# See group_vars/all/vault.yml.example
+scc_regcode: "{{ vault_scc_regcode | default('') }}"
+scc_email: "{{ vault_scc_email | default('') }}"
+# Extensions/modules to activate, as identifier/version/arch.
+# Run `sudo SUSEConnect --list-extensions` after registering to see what's available.
+scc_extensions: []
+#  - PackageHub/16.0/x86_64
+
+# ---- repos ----
+repos_remove_install_media: true   # drop the hd:/cd:/dvd:/iso: repo left by the installer
+repos_extra: []                    # [{name: foo, url: https://...}]
+repos_update_system: true          # zypper patch after repos are in place

@@ -1,14 +1,17 @@
 ---
-# VERIFY against current SUSE AI 1.0 docs and `zypper se nvidia` on SLES 16.
-nvidia_kmp_package:
-  open: nvidia-open-driver-G06-signed-kmp-default
-  proprietary: nvidia-driver-G06-kmp-default
+# Follows SUSE AI 1.0 guide section 2.2.1, adjusted for SLES 16 (see docs/sles16-deltas.md)
 
-# NVIDIA repo that provides nvidia-compute-utils-G06 / nvidia-compute-G06.
-# VERIFY: confirm the SLES 16 path exists. Fall back to sles15 if NVIDIA has not published one.
-nvidia_repo_name: nvidia-cuda
-nvidia_repo_url: https://developer.download.nvidia.com/compute/cuda/repos/sles16/x86_64/
+# SUSE-signed open driver meta-package, from the SLES 16 product repo
+nvidia_driver_package: nv-prefer-signed-open-driver
 
-nvidia_compute_packages:
+# NVIDIA's sles16 repo has no driver userspace (yet), so use the sles15 repo
+nvidia_repo_name: cuda-sle15
+nvidia_repo_url: https://developer.download.nvidia.com/compute/cuda/repos/sles15/x86_64/
+
+# Pinned to the installed driver version
+nvidia_utils_packages:
   - nvidia-compute-utils-G06
-  - nvidia-compute-G06
+  - nvidia-persistenced
+
+# nvidia-gl-G06: only if something needs Vulkan
+nvidia_install_gl: false

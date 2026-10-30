@@ -1,32 +1,31 @@
 # 03 - NVIDIA Driver (the SUSE way)
 
-## Decision: open driver, SUSE-signed KMP
+Follows [SUSE AI guide §2.2.1](https://documentation.suse.com/suse-ai/1.0/html/AI-deployment/ai-deployment-kube-installing.html), adjusted for SLES 16. See [sles16-deltas.md](sles16-deltas.md).
 
-| Option | Choice | Why |
-|--------|--------|-----|
-| Open vs proprietary kernel modules | **Open (G06)** | SUSE's recommended path for Turing+ GPUs. The RTX 3050 Ti is Ampere. |
-| Packaging | **SUSE signed KMP** (`nvidia-open-driver-G06-signed-kmp-*`) | Prebuilt and signed by SUSE, so it works with Secure Boot and needs no MOK enrollment or DKMS |
-| Userspace / compute | `nvidia-compute-utils-G06` (and `nvidia-compute-G06`) from NVIDIA's repo | Gives you `nvidia-smi` and CUDA libraries. Version **must match** the KMP version. |
-| Display | Intel iGPU drives the display. NVIDIA is used for compute/offload | Avoids hybrid-graphics headaches on the desktop |
+## Decision: open driver, SUSE-signed
 
-> ⚠️ Verify package names and the repo URL against the current SUSE AI 1.0 docs and the SLES 16 repos (`zypper se nvidia`). They are variables in `ansible/roles/nvidia/defaults/main.yml`.
+| Item | Choice | Why |
+|------|--------|-----|
+| Kernel driver | `nv-prefer-signed-open-driver` (SLES 16 product repo) | Same as the guide. SUSE-signed open G06 modules, so Secure Boot works with no MOK enrollment. The RTX 3050 Ti is Ampere, which the open modules support. |
+| Userspace | `nvidia-compute-utils-G06` + `nvidia-persistenced` from NVIDIA's **sles15** CUDA repo | NVIDIA's sles16 repo has no driver userspace yet. Pinned to the driver version. |
+| Vulkan | `nvidia-gl-G06`, off by default (`nvidia_install_gl`) | Only needed for Vulkan apps |
+| Display | The Intel iGPU drives the display | NVIDIA is used for compute only |
 
 ## Automated
 
 ```bash
 ansible-playbook site.yml --tags nvidia
-sudo reboot
+ssh mansible@192.168.0.103 sudo reboot
 ```
 
-## Manual equivalent (for reference)
+## Manual equivalent (as on SLES 16)
 
 ```bash
-zypper se -s nvidia-open-driver            # see available KMP versions
-# add NVIDIA repo for compute utils (verify URL for SLES 16)
-zypper ar -f <nvidia_repo_url> nvidia-cuda
+zypper in -y --auto-agree-with-licenses nv-prefer-signed-open-driver
+version=$(rpm -qa --queryformat '%{VERSION}\n' nv-prefer-signed-open-driver | cut -d_ -f1 | sort -u | tail -n1)
+zypper ar https://developer.download.nvidia.com/compute/cuda/repos/sles15/x86_64/ cuda-sle15
 zypper --gpg-auto-import-keys refresh
-VER=$(rpm -qa --queryformat '%{VERSION}\n' nvidia-open-driver-G06-signed-*kmp-default | cut -d_ -f1 | sort -u | tail -1)
-zypper in -y --auto-agree-with-licenses nvidia-compute-utils-G06=${VER} nvidia-compute-G06=${VER}
+zypper in -y --auto-agree-with-licenses nvidia-compute-utils-G06=${version} nvidia-persistenced=${version}
 reboot
 ```
 

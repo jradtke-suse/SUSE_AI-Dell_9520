@@ -1,17 +1,66 @@
 ---
-# TODO: flesh out. Skeleton for a single-node RKE2 server.
-- name: Install rke2-selinux
-  community.general.zypper:
-    name: rke2-selinux
+# SUSE AI 1.0 guide section 2.3, adjusted for SLES 16 (see docs/sles16-deltas.md)
+
+- name: Tell NetworkManager to ignore CNI interfaces
+  ansible.builtin.copy:
+    dest: /etc/NetworkManager/conf.d/rke2-canal.conf
+    content: |
+      [keyfile]
+      unmanaged-devices=interface-name:flannel*;interface-name:cali*;interface-name:tunl*;interface-name:vxlan.calico;interface-name:vxlan-v6.calico;interface-name:wireguard.cali;interface-name:wg-v6.cali
+    mode: "0644"
+  notify: reload NetworkManager
+
+- name: Create RKE2 config dir
+  ansible.builtin.file:
+    path: /etc/rancher/rke2
+    state: directory
+    mode: "0755"
+
+- name: Write RKE2 config
+  ansible.builtin.copy:
+    dest: /etc/rancher/rke2/config.yaml
+    content: "{{ rke2_config | to_nice_yaml }}"
+    mode: "0600"
+
+- name: Import Rancher RPM signing key
+  ansible.builtin.rpm_key:
+    key: "{{ rke2_selinux_gpg_key }}"
     state: present
   when: rke2_selinux | bool
 
-- name: Install RKE2 server
+- name: Add Rancher rke2-common repo (rke2-selinux)
+  community.general.zypper_repository:
+    name: rancher-rke2-common
+    description: Rancher RKE2 common (sle)
+    repo: "{{ rke2_selinux_repo_url }}"
+    autorefresh: true
+    state: present
+  when: rke2_selinux | bool
+
+- name: Install rke2-selinux policy
+  community.general.zypper:
+    name: rke2-selinux
+    state: present
+    update_cache: true
+  when: rke2_selinux | bool
+  ignore_errors: "{{ ansible_check_mode }}"   # repo isn't added in --check
+
+- name: Install RKE2 server from Prime artifacts
   ansible.builtin.shell: |
-    curl -sfL https://get.rke2.io | \
-      INSTALL_RKE2_CHANNEL={{ rke2_channel }} {% if rke2_version %}INSTALL_RKE2_VERSION={{ rke2_version }}{% endif %} sh -
+    set -o pipefail
+    curl -sfL https://get.rke2.io/ | \
+      INSTALL_RKE2_METHOD=tar \
+      INSTALL_RKE2_ARTIFACT_URL={{ rke2_artifact_url }}/rke2 \
+      {% if rke2_version %}INSTALL_RKE2_VERSION={{ rke2_version }}{% else %}INSTALL_RKE2_CHANNEL={{ rke2_channel }}{% endif %} sh -
   args:
+    executable: /bin/bash
     creates: /usr/local/bin/rke2
+
+- name: Restore SELinux labels on RKE2 binaries
+  ansible.builtin.command: restorecon -RFv /usr/local/bin/rke2 /usr/local/bin/rke2-killall.sh /usr/local/bin/rke2-uninstall.sh /var/lib/rancher /etc/rancher
+  register: rke2_restorecon
+  changed_when: rke2_restorecon.stdout | length > 0
+  when: rke2_selinux | bool and not ansible_check_mode
 
 - name: Open RKE2 firewall ports
   ansible.posix.firewalld:
@@ -26,3 +75,4 @@
     name: rke2-server
     enabled: true
     state: started
+  ignore_errors: "{{ ansible_check_mode }}"   # unit doesn't exist yet in --check

@@ -1,0 +1,49 @@
+---
+- name: Get SCC registration status
+  ansible.builtin.command: SUSEConnect -s
+  register: scc_status_raw
+  changed_when: false
+  check_mode: false
+
+- name: Parse registration status
+  ansible.builtin.set_fact:
+    scc_status: "{{ scc_status_raw.stdout | from_json }}"
+
+- name: Determine base product registration
+  ansible.builtin.set_fact:
+    scc_base_registered: >-
+      {{ scc_status | selectattr('identifier', 'equalto', 'SLES')
+         | selectattr('status', 'equalto', 'Registered') | list | length > 0 }}
+
+- name: Ensure a regcode is available
+  ansible.builtin.assert:
+    that: scc_regcode | length > 0
+    fail_msg: >-
+      Not registered and no regcode found. Create group_vars/all/vault.yml
+      (see vault.yml.example) and run with --ask-vault-pass.
+  when: not scc_base_registered
+
+- name: Register base product with SCC
+  ansible.builtin.command: >-
+    SUSEConnect -r {{ scc_regcode }}{% if scc_email %} -e {{ scc_email }}{% endif %}
+  no_log: true
+  when: not scc_base_registered
+  changed_when: true
+
+- name: Activate extensions
+  ansible.builtin.command: SUSEConnect -p {{ item }}
+  loop: "{{ scc_extensions }}"
+  when: >-
+    item.split('/')[0] not in
+    (scc_status | selectattr('status', 'equalto', 'Registered') | map(attribute='identifier') | list)
+  changed_when: true
+
+- name: Show registration status
+  ansible.builtin.command: SUSEConnect --status-text
+  register: scc_status_text
+  changed_when: false
+  check_mode: false
+
+- name: Registration summary
+  ansible.builtin.debug:
+    msg: "{{ scc_status_text.stdout_lines | select | reject('search', '(?i)regcode') | list }}"

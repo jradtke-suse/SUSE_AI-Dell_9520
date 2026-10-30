@@ -1,0 +1,5 @@
+---
+# Create the real file with:  ansible-vault create group_vars/all/vault.yml
+vault_scc_regcode: "XXXXXXXXXXXXXX"
+vault_scc_email: "you@example.com"
+vault_suse_ai_regcode: "XXXXXXXXXXXXXX"   # optional, only if SUSE AI is an SCC extension

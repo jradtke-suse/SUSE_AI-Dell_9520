@@ -1,20 +1,31 @@
 ---
-- name: Install NVIDIA kernel module package ({{ nvidia_driver_flavor }})
+- name: Install SUSE-signed open NVIDIA driver
   community.general.zypper:
-    name: "{{ nvidia_kmp_package[nvidia_driver_flavor] }}"
+    name: "{{ nvidia_driver_package }}"
     state: present
   notify: reboot required
 
-- name: Detect installed driver version (compute utils must match it)
+- name: Detect installed driver version
   ansible.builtin.shell: |
     set -o pipefail
-    rpm -q --queryformat '%{VERSION}\n' {{ nvidia_kmp_package[nvidia_driver_flavor] }} | cut -d_ -f1
+    rpm -qa --queryformat '%{VERSION}\n' {{ nvidia_driver_package }} | cut -d_ -f1 | sort -uV | tail -n1
   args:
     executable: /bin/bash
-  register: nvidia_kmp_version
+  register: nvidia_version_raw
   changed_when: false
+  check_mode: false
 
-- name: Add NVIDIA repo
+- name: Set driver version fact
+  ansible.builtin.set_fact:
+    nvidia_version: "{{ nvidia_version_raw.stdout | trim }}"
+
+- name: Ensure driver version was detected
+  ansible.builtin.assert:
+    that: nvidia_version | length > 0
+    fail_msg: "Could not read the {{ nvidia_driver_package }} version"
+  when: not ansible_check_mode
+
+- name: Add NVIDIA CUDA repo
   community.general.zypper_repository:
     name: "{{ nvidia_repo_name }}"
     repo: "{{ nvidia_repo_url }}"
@@ -22,12 +33,13 @@
     autorefresh: true
     state: present
 
-- name: Install matching NVIDIA compute utils
+- name: Install NVIDIA utils pinned to driver version
   community.general.zypper:
-    name: "{{ nvidia_compute_packages | map('regex_replace', '$', '=' ~ nvidia_kmp_version.stdout) | list }}"
+    name: "{{ (nvidia_utils_packages + (['nvidia-gl-G06'] if nvidia_install_gl | bool else [])) | map('regex_replace', '$', '=' ~ nvidia_version) | list }}"
     state: present
+  when: nvidia_version | length > 0   # empty only in --check before the driver is installed
   notify: reboot required
 
 - name: Show driver version
   ansible.builtin.debug:
-    msg: "NVIDIA driver {{ nvidia_kmp_version.stdout }} installed. Reboot, then run nvidia-smi."
+    msg: "NVIDIA {{ nvidia_version }} installed. Reboot, then run: sudo nvidia-smi"

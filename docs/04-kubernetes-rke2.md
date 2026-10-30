@@ -14,7 +14,13 @@ kubectl get nodes -o wide
 kubectl get pods -A
 ```
 
+## SLES 16 notes (see [sles16-deltas.md](sles16-deltas.md))
+
+- Installs from the **Prime artifacts URL** (`rke2_artifact_url`) with `system-default-registry: registry.rancher.com`, per guide §2.3
+- NetworkManager is told to ignore CNI interfaces (`/etc/NetworkManager/conf.d/rke2-canal.conf`)
+- SELinux is **Enforcing** on SLES 16 (the guide assumes AppArmor). **Decision: keep SELinux.** The role adds Rancher's `sle` RPM repo, installs `rke2-selinux`, sets `selinux: true` in `config.yaml`, and runs `restorecon` on the tarball-installed binaries.
+- Prime artifacts URL `https://prime.ribs.rancher.io` needs no login
+
 ## Notes
 
-- SELinux: install `rke2-selinux` (the role does this when `rke2_selinux: true`)
 - Firewall: 6443/tcp, 9345/tcp, 10250/tcp (single node). Or disable firewalld for the lab and record that decision here.
