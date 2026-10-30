@@ -40,4 +40,12 @@ mokutil --sb-state
 
 ## Results
 
-_record driver version, nvidia-smi output, any issues here_
+**2026-10-30, wheatley**
+- Driver **580.178.04**: `nv-prefer-signed-open-driver` pulled in `nvidia-open-driver-G06-signed-cuda-kmp-default-580.178.04_k6.12.0_160000.37`
+- Running kernel `6.12.0-160000.40`: the module is picked up through `weak-updates/` (kABI), so no rebuild is needed
+- `modinfo nvidia`: license `Dual MIT/GPL`, signer `SUSE Linux Enterprise Secure Boot CA`
+- nouveau blacklisted by `/usr/lib/modprobe.d/50-nvidia.conf`. GSP firmware (`gsp_ga10x.bin`) is present.
+- Userspace from the NVIDIA sles15 repo: `nvidia-compute-utils-G06`, `nvidia-compute-G06`, `nvidia-persistenced` (all 580.178.04)
+- ✅ `nvidia-smi` after reboot: **NVIDIA GeForce RTX 3050 Ti Laptop GPU**, 4096 MiB, Driver 580.178.04, CUDA 13.0, Persistence-M On
+- Modules loaded: `nvidia`, `nvidia_uvm`, `nvidia_modeset`, `nvidia_drm`. No nouveau. `nvidia-persistenced` is active.
+- ⚠️ `mokutil --sb-state`: **SecureBoot disabled, Platform is in Setup Mode**. The SUSE-signed module would load with Secure Boot on, but it hasn't been tested that way yet. See 00-hardware.

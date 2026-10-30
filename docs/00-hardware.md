@@ -28,6 +28,6 @@ free -h
 
 - [ ] Update BIOS to the latest version (Dell support / fwupd) before you start
 - [ ] Storage: AHCI/NVMe mode (not RAID/Intel RST) so Linux can see the NVMe drive
-- [ ] Secure Boot: **leave enabled**. SUSE-signed shim + SUSE-signed NVIDIA KMP means you don't need to enroll a MOK key.
+- [ ] Secure Boot: **leave enabled**. _wheatley 2026-10-30: currently disabled, firmware in Setup Mode (no platform key enrolled). Revisit._ SUSE-signed shim + SUSE-signed NVIDIA KMP means you don't need to enroll a MOK key.
 - [ ] Virtualization (VT-x / VT-d): enabled (needed for the KVM host pattern)
 - [ ] Boot order / one-time boot: F12

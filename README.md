@@ -15,9 +15,9 @@ This will provide guidance, step-by-step, on how to deploy SUSE AI 1.0 on a Dell
 | 2 | Post-install bootstrap | [docs/02-post-install.md](docs/02-post-install.md) | `scripts/00-bootstrap.sh` | ⬜ |
 | 3a | Passwordless sudo | [docs/02-post-install.md](docs/02-post-install.md) | `ansible` role `sudo` | ✅ |
 | 3b | SCC registration | [docs/02-post-install.md](docs/02-post-install.md) | `ansible` role `registration` | ✅ |
-| 3c | Repos + patching | [docs/02-post-install.md](docs/02-post-install.md) | `ansible` role `repos` | ✅ (reboot pending) |
+| 3c | Repos + patching | [docs/02-post-install.md](docs/02-post-install.md) | `ansible` role `repos` | ✅ |
 | 3 | Base OS config | [docs/02-post-install.md](docs/02-post-install.md) | `ansible` role `base` | ⬜ |
-| 4 | NVIDIA open driver + compute utils | [docs/03-nvidia-driver.md](docs/03-nvidia-driver.md) | `ansible` role `nvidia` | ⬜ |
+| 4 | NVIDIA open driver + compute utils | [docs/03-nvidia-driver.md](docs/03-nvidia-driver.md) | `ansible` role `nvidia` | ✅ 580.178.04 |
 | 5 | Kubernetes (RKE2, single node) | [docs/04-kubernetes-rke2.md](docs/04-kubernetes-rke2.md) | `ansible` role `rke2` | ⬜ |
 | 6 | SUSE AI stack | [docs/05-suse-ai.md](docs/05-suse-ai.md) | `ansible` role `suse_ai` (stub) | ⬜ |
 | – | Troubleshooting log | [docs/troubleshooting.md](docs/troubleshooting.md) | – | – |
