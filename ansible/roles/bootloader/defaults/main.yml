@@ -1,0 +1,18 @@
+---
+# Options the "Failsafe" installer boot entry leaves in the installed system.
+# "3" boots to multi-user (no GDM); "nomodeset" breaks KMS/Wayland.
+bootloader_cmdline_remove:
+  - ide=nodma
+  - apm=off
+  - noresume
+  - edd=off
+  - nomodeset
+  - "3"
+
+# Dual boot (Windows on the other NVMe):
+#   os-prober : auto-detect via os-prober (Package Hub 16.0 only, needs PackageHub in scc_extensions)
+#   chainload : fixed GRUB entry -> /EFI/Microsoft/Boot/bootmgfw.efi on bootloader_windows_esp_uuid
+#   none      : neither
+bootloader_windows_method: os-prober
+# For chainload. Find with: blkid -t PARTLABEL="EFI system partition"
+bootloader_windows_esp_uuid: "5ACF-A682"   # wheatley: nvme1n1p1

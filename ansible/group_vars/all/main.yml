@@ -16,7 +16,7 @@ base_services:
 firewall_ports: []          # rke2 role adds its own
 
 # ---- nvidia ----
-nvidia_install_gl: false    # nvidia-gl-G06, only if Vulkan is needed
+nvidia_install_gl: true     # nvidia-gl-G06: EGL/GBM for NVIDIA. Required for GNOME, or gnome-shell crashes in Mesa on the nvidia DRM device
 
 # ---- rke2 ----
 rke2_channel: stable        # or pin rke2_version
@@ -32,8 +32,8 @@ scc_regcode: "{{ vault_scc_regcode | default('') }}"
 scc_email: "{{ vault_scc_email | default('') }}"
 # Extensions/modules to activate, as identifier/version/arch.
 # Run `sudo SUSEConnect --list-extensions` after registering to see what's available.
-scc_extensions: []
-#  - PackageHub/16.0/x86_64
+scc_extensions:
+  - PackageHub/16.0/x86_64      # community packages (os-prober). Not SUSE-supported
 
 # ---- repos ----
 repos_remove_install_media: true   # drop the hd:/cd:/dvd:/iso: repo left by the installer

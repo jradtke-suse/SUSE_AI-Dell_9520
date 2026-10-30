@@ -8,7 +8,7 @@ Follows [SUSE AI guide §2.2.1](https://documentation.suse.com/suse-ai/1.0/html/
 |------|--------|-----|
 | Kernel driver | `nv-prefer-signed-open-driver` (SLES 16 product repo) | Same as the guide. SUSE-signed open G06 modules, so Secure Boot works with no MOK enrollment. The RTX 3050 Ti is Ampere, which the open modules support. |
 | Userspace | `nvidia-compute-utils-G06` + `nvidia-persistenced` from NVIDIA's **sles15** CUDA repo | NVIDIA's sles16 repo has no driver userspace yet. Pinned to the driver version. |
-| Vulkan | `nvidia-gl-G06`, off by default (`nvidia_install_gl`) | Only needed for Vulkan apps |
+| GL/EGL/GBM | `nvidia-gl-G06`, **on** (`nvidia_install_gl: true`) | The guide says "only for Vulkan", but on a **hybrid laptop with GNOME it's required**. `nvidia-drm` exposes the dGPU as `card0`. Without NVIDIA's EGL/GBM, gnome-shell crashes in Mesa `libgallium` and GDM gives up (blinking cursor). |
 | Display | The Intel iGPU drives the display | NVIDIA is used for compute only |
 
 ## Automated
@@ -25,7 +25,7 @@ zypper in -y --auto-agree-with-licenses nv-prefer-signed-open-driver
 version=$(rpm -qa --queryformat '%{VERSION}\n' nv-prefer-signed-open-driver | cut -d_ -f1 | sort -u | tail -n1)
 zypper ar https://developer.download.nvidia.com/compute/cuda/repos/sles15/x86_64/ cuda-sle15
 zypper --gpg-auto-import-keys refresh
-zypper in -y --auto-agree-with-licenses nvidia-compute-utils-G06=${version} nvidia-persistenced=${version}
+zypper in -y --auto-agree-with-licenses nvidia-compute-utils-G06=${version} nvidia-persistenced=${version} nvidia-gl-G06=${version}
 reboot
 ```
 

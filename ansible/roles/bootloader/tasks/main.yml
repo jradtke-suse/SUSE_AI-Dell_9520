@@ -1,0 +1,62 @@
+---
+- name: Read /etc/default/grub
+  ansible.builtin.slurp:
+    src: /etc/default/grub
+  register: grub_default
+
+- name: Build cleaned kernel command line
+  ansible.builtin.set_fact:
+    grub_cmdline_new: >-
+      {{ (grub_default.content | b64decode
+          | regex_search('(?m)^GRUB_CMDLINE_LINUX_DEFAULT="([^"]*)"', '\1') | first).split()
+         | reject('in', bootloader_cmdline_remove) | join(' ') }}
+
+- name: Remove failsafe installer options from GRUB_CMDLINE_LINUX_DEFAULT
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+    line: 'GRUB_CMDLINE_LINUX_DEFAULT="{{ grub_cmdline_new }}"'
+    backup: true
+  notify:
+    - regenerate grub config
+    - bootloader reboot required
+
+
+- name: Install os-prober (Package Hub)
+  community.general.zypper:
+    name: os-prober
+    state: present
+  when: bootloader_windows_method == 'os-prober'
+  notify: regenerate grub config
+
+- name: Set GRUB_DISABLE_OS_PROBER
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^#?GRUB_DISABLE_OS_PROBER='
+    line: GRUB_DISABLE_OS_PROBER="{{ (bootloader_windows_method != "os-prober") | lower }}"
+  notify: regenerate grub config
+
+- name: Add Windows Boot Manager GRUB entry (chainload)
+  ansible.builtin.copy:
+    dest: /etc/grub.d/45_windows
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      # Managed by Ansible (bootloader role, bootloader_windows_method=chainload)
+      exec tail -n +4 $0
+      menuentry 'Windows Boot Manager' --class windows --class os {
+          insmod part_gpt
+          insmod fat
+          insmod chain
+          search --no-floppy --fs-uuid --set=root {{ bootloader_windows_esp_uuid }}
+          chainloader /EFI/Microsoft/Boot/bootmgfw.efi
+      }
+  when: bootloader_windows_method == 'chainload'
+  notify: regenerate grub config
+
+- name: Remove chainload entry when not used (avoid duplicate Windows entries)
+  ansible.builtin.file:
+    path: /etc/grub.d/45_windows
+    state: absent
+  when: bootloader_windows_method != 'chainload'
+  notify: regenerate grub config

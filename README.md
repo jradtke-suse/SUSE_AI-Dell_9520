@@ -16,6 +16,7 @@ This will provide guidance, step-by-step, on how to deploy SUSE AI 1.0 on a Dell
 | 3a | Passwordless sudo | [docs/02-post-install.md](docs/02-post-install.md) | `ansible` role `sudo` | ✅ |
 | 3b | SCC registration | [docs/02-post-install.md](docs/02-post-install.md) | `ansible` role `registration` | ✅ |
 | 3c | Repos + patching | [docs/02-post-install.md](docs/02-post-install.md) | `ansible` role `repos` | ✅ |
+| 3d | Bootloader: failsafe options cleanup + Windows entry | [docs/02-post-install.md](docs/02-post-install.md) | `ansible` role `bootloader` | ✅ |
 | 3 | Base OS config | [docs/02-post-install.md](docs/02-post-install.md) | `ansible` role `base` | ⬜ |
 | 4 | NVIDIA open driver + compute utils | [docs/03-nvidia-driver.md](docs/03-nvidia-driver.md) | `ansible` role `nvidia` | ✅ 580.178.04 |
 | 5 | Kubernetes (RKE2, single node) | [docs/04-kubernetes-rke2.md](docs/04-kubernetes-rke2.md) | `ansible` role `rke2` | ⬜ |
@@ -42,6 +43,7 @@ This will provide guidance, step-by-step, on how to deploy SUSE AI 1.0 on a Dell
         ├── sudo/            # Passwordless sudo for the Ansible user
         ├── registration/    # SUSEConnect to SCC (regcode from vault)
         ├── repos/           # Install-media cleanup, extra repos, zypper patch
+        ├── bootloader/      # Strip failsafe installer kernel options (nomodeset, 3)
         ├── base/            # Repos, packages, firewall, users, etc.
         ├── nvidia/          # Open G06 driver (signed KMP) + nvidia-compute-utils
         ├── rke2/            # Single-node RKE2
@@ -57,7 +59,7 @@ cd ansible
 ansible-galaxy collection install -r requirements.yml
 ansible-playbook site.yml --tags sudo -K     # ROOT password (SLES targetpw); one time only
 export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible/suse_ai_vault_pass
-ansible-playbook site.yml --tags registration,repos   # then reboot
+ansible-playbook site.yml --tags registration,repos,bootloader   # then reboot
 ansible-playbook site.yml --tags base
 ansible-playbook site.yml --tags nvidia     # reboot when prompted, then verify with nvidia-smi
 ansible-playbook site.yml --tags rke2

@@ -8,6 +8,8 @@
       tags: [registration]
     - role: repos
       tags: [repos]
+    - role: bootloader
+      tags: [bootloader]
     - role: base
       tags: [base]
     - role: nvidia

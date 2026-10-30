@@ -25,7 +25,7 @@ I tend to keep the installation itself fairly generic/vanilla and then deal with
 
 ## First boot: enable SSH (manual step)
 
-After the first reboot, it is **expected** that the graphical desktop does not start and sshd is **not** running. This is normal for this hardware/install method and is not a problem. You need to log in at the console (try **Ctrl+Alt+F3** if the screen is blank) and enable sshd by hand:
+After the first reboot, it is **expected** that the graphical desktop does not start and sshd is **not** running. This is normal for this hardware/install method and is not a problem. The desktop is missing because the failsafe kernel options (`nomodeset 3`) carry over into the installed system. The `bootloader` Ansible role fixes that later (see [02 §2e](02-post-install.md#2e-bootloader-role-fix-the-failsafe-kernel-options)). You need to log in at the console (try **Ctrl+Alt+F3** if the screen is blank) and enable sshd by hand:
 
 ```bash
 sudo systemctl enable sshd --now

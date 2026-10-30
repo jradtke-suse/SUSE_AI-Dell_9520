@@ -59,7 +59,7 @@ ansible-playbook site.yml --tags registration --vault-password-file ~/.ansible/s
 ```
 
 - Reads `SUSEConnect -s` and registers only if `SLES` isn't already `Registered`. The regcode is never logged.
-- Extensions go in `scc_extensions` in `group_vars/all/main.yml`. On SLES 16.0 the available ones are `sle-ha/16.0/x86_64` (needs its own regcode) and `PackageHub/16.0/x86_64`.
+- Extensions go in `scc_extensions` in `group_vars/all/main.yml`. On SLES 16.0 the available ones are `sle-ha/16.0/x86_64` (needs its own regcode) and `PackageHub/16.0/x86_64`. **PackageHub is enabled** on wheatley (for `os-prober`). It adds the `Backports-16.0` and `PackageHub-16.0` repos.
 - **SUSE AI is not an SCC extension on SLES.** Its regcode (`vault_suse_ai_regcode`) is for the Kubernetes/Application Collection side later.
 
 ### 2d. `repos` role
@@ -75,7 +75,50 @@ ansible-playbook site.yml --tags repos --vault-password-file ~/.ansible/suse_ai_
 
 > First run on wheatley (2026-10-30): 540 patches, then 26 reboot-flagged ones. Kernel 6.12.0-160000.5 → 160000.40.
 
-### 2e. `base` role
+### 2e. `bootloader` role (fix the failsafe kernel options)
+
+Installing from the **Failsafe** boot entry (see [01](01-os-installation.md)) carries the failsafe kernel options into the installed system's `/etc/default/grub`:
+
+```
+GRUB_CMDLINE_LINUX_DEFAULT="ide=nodma apm=off noresume edd=off nomodeset 3 mitigations=auto quiet security=selinux selinux=1 rd.driver.blacklist=nouveau rd.driver.blacklist=nova-core"
+```
+
+- `3` boots to **multi-user.target**, so GDM never starts. This is why there's no desktop after install.
+- `nomodeset` disables kernel modesetting, which GNOME on Wayland needs (i915 and nvidia-drm)
+- `ide=nodma apm=off noresume edd=off` are legacy failsafe options with no use here
+
+The role removes those options (listed in `bootloader_cmdline_remove`), keeps everything else, backs up `/etc/default/grub`, and regenerates `/boot/grub2/grub.cfg`:
+
+```bash
+ansible-playbook site.yml --tags bootloader
+ssh mansible@192.168.0.103 sudo reboot
+```
+
+Result on wheatley (2026-10-30):
+```
+GRUB_CMDLINE_LINUX_DEFAULT="mitigations=auto quiet security=selinux selinux=1 rd.driver.blacklist=nouveau rd.driver.blacklist=nova-core"
+```
+
+Manual equivalent:
+```bash
+sudo vi /etc/default/grub        # remove: ide=nodma apm=off noresume edd=off nomodeset 3
+sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+sudo reboot
+```
+
+**Dual boot (Windows on the second NVMe):** `os-prober` isn't in the SLES 16 core repos. It's only in **SUSE Package Hub 16.0** (community-maintained, not SUSE-supported). `bootloader_windows_method` selects how Windows gets into the GRUB menu:
+
+| Method | What it does |
+|---|---|
+| `os-prober` (**current**) | Installs `os-prober` from Package Hub (`PackageHub/16.0/x86_64` in `scc_extensions`), sets `GRUB_DISABLE_OS_PROBER="false"`, and removes the fixed entry |
+| `chainload` | Fixed `/etc/grub.d/45_windows` entry that chainloads `/EFI/Microsoft/Boot/bootmgfw.efi` from `bootloader_windows_esp_uuid`. Supported packages only. |
+| `none` | No Windows entry (use the firmware F12 menu) |
+
+Result on wheatley: `menuentry 'Windows Boot Manager (on /dev/nvme1n1p1)'`.
+
+> os-prober scans every disk each time `grub2-mkconfig` runs (each kernel update). Remove the USB installer stick so it isn't picked up.
+
+### 2f. `base` role
 
 ```bash
 ansible-playbook site.yml --tags base
