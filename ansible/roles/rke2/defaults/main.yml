@@ -30,9 +30,15 @@ rke2_firewall_ports:
   - 6443/tcp
   - 9345/tcp
   - 10250/tcp
+  - 80/tcp      # traefik ingress (hostPort)
+  - 443/tcp
 
 # firewalld stays on (SLES default). Trust the RKE2 default cluster/service CIDRs
 # so pod-to-pod and pod-to-host traffic isn't dropped.
 rke2_trusted_cidrs:
   - 10.42.0.0/16
   - 10.43.0.0/16
+
+# Admin kubeconfig copied to the workstation (Ansible controller)
+rke2_local_kubeconfig: "~/.kube/homelab-{{ inventory_hostname }}.kubeconfig"
+rke2_kubeconfig_server: "https://{{ ansible_host }}:6443"

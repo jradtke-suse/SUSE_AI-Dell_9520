@@ -1,0 +1,18 @@
+---
+# Guide 4.4. Required by Open WebUI (TLS via the suse-private-ai issuer).
+- name: Install cert-manager from Application Collection
+  kubernetes.core.helm:
+    name: cert-manager
+    chart_ref: "{{ appco_chart_base }}/cert-manager"
+    chart_version: "{{ cert_manager_chart_version or omit }}"
+    release_namespace: "{{ cert_manager_namespace }}"
+    binary_path: "{{ suse_ai_helm }}"
+    kubeconfig: "{{ suse_ai_kubeconfig }}"
+    values:
+      crds:
+        enabled: true
+      global:
+        imagePullSecrets:
+          - name: application-collection
+    wait: true
+    wait_timeout: 10m

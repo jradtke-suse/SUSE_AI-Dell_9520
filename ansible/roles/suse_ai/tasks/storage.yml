@@ -1,4 +1,23 @@
 ---
+# The policy maps this path to container_file_t, but if the kubelet creates it
+# (hostPath DirectoryOrCreate) it ends up usr_t and helper pods get
+# "mkdir: Permission denied". Create it here and restorecon it.
+- name: Create local-path storage dir
+  ansible.builtin.file:
+    path: "{{ local_path_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Check SELinux label on local-path storage dir
+  ansible.builtin.command: restorecon -Rnv {{ local_path_dir }}
+  register: local_path_relabel
+  changed_when: false
+  check_mode: false
+
+- name: Restore SELinux label on local-path storage dir
+  ansible.builtin.command: restorecon -Rv {{ local_path_dir }}
+  when: local_path_relabel.stdout | length > 0
+
 - name: Deploy local-path-provisioner via RKE2 manifests dir
   ansible.builtin.template:
     src: local-path-storage.yaml.j2

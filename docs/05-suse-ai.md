@@ -6,7 +6,7 @@
   ```bash
   cd ansible
   ansible-vault edit group_vars/all/vault.yml --vault-password-file ~/.ansible/suse_ai_vault_pass
-  # set vault_appco_username and vault_appco_token (currently CHANGE_ME)
+  # vault_appco_username, vault_appco_token, vault_suse_ai_regcode
   ```
 - [ ] RKE2 running ([04](04-kubernetes-rke2.md))
 - [ ] Host NVIDIA driver working ([03](03-nvidia-driver.md))
@@ -45,22 +45,50 @@ Guide nbody test pod:
 = 2941.895 single-precision GFLOP/s at 20 flops per interaction
 ```
 
-## Next: guide chapter 4 (to flesh out)
+## Done: guide chapter 4 (single node)
 
-1. Namespace + pull secrets: `application-collection` (dp.apps.rancher.io) and `suse-ai-registry` (registry.suse.com, user `regcode`, SUSE AI regcode from the vault)
-2. Log in to the Application Collection registry and create the pull secret. Creds are `appco_username` / `appco_token` from the vault. The AppCo login (`jamradtke@suse.com`) is **not** the SCC email.
-   ```bash
-   helm registry login dp.apps.rancher.io -u <appco_username> -p <appco_token>
-   kubectl create secret docker-registry application-collection \
-     --docker-server=dp.apps.rancher.io \
-     --docker-username=<appco_username> --docker-password=<appco_token> -n <namespace>
-   ```
-3. cert-manager (`oci://dp.apps.rancher.io/charts/cert-manager`, `crds.enabled=true`)
-4. Ollama (`gpu.enabled: true`) and Open WebUI (ingress class **traefik**, storage `local-path`). Vector DB (Milvus/OpenSearch) later.
-5. (Optional) SUSE Security (NeuVector)
+Run with `ansible-playbook site.yml --tags suse_ai` (or `--tags registry`, `cert_manager`, `ollama`, `open_webui`).
 
-> With 4 GB VRAM, stick to small models (e.g. ~3B–8B quantized).
+| Guide § | What | Result |
+|---|---|---|
+| 4.3 | Namespaces `suse-ai` + `cert-manager`. Pull secrets `application-collection` (dp.apps.rancher.io) and `suse-ai-registry` (registry.suse.com, user `regcode`, **SUSE AI regcode**) in both. `helm registry login` to both. All creds from the vault, `no_log`. | ✅ |
+| 4.4 | cert-manager **1.21.3** (`oci://dp.apps.rancher.io/charts/cert-manager`, `crds.enabled=true`) | ✅ |
+| 4.5/4.6 | OpenSearch / Milvus | ⏭ not yet. Open WebUI uses its built-in vector store. |
+| 4.7 | Ollama chart **1.93.0** (app 0.40.12), GPU on, 30Gi `local-path` PV. Models `gemma:2b`, `llama3.2:3b`. | ✅ 100% GPU |
+| 4.8 | Open WebUI chart **8.19.1** (app 0.6.41), standalone-Ollama variant, ingress **traefik**, TLS from cert-manager's `suse-private-ai` self-signed CA | ✅ |
 
-## Results
+**Open WebUI:** https://wheatley.homelab.kubernerdes.com
+- The first account you create becomes the admin.
+- The cert is self-signed (issuer `CN=suse-private-ai-selfsigned-ca`), so expect a browser warning.
+- That name resolves to the WiFi IP (`.249`). Traefik listens on all host interfaces, so it works either way.
 
-_record versions, values files, screenshots_
+**kubectl from the workstation:** `KUBECONFIG=~/.kube/homelab-wheatley.kubeconfig kubectl get pods -n suse-ai` (written by the `rke2` role).
+
+### Differences from the guide
+
+- **Models:** the guide's example pulls `llama3.1` (8B, ~4.9 GB), which won't fit in 4 GB VRAM. We use `gemma:2b` (preloaded) + `llama3.2:3b`. Ollama swaps them on demand.
+- **Ingress class `traefik`**, not nginx. The chart still adds the `nginx.ingress.kubernetes.io/ssl-redirect` annotation, which traefik ignores, so plain HTTP isn't redirected.
+- **`enableOpenaiApi: false`.** The chart default points Open WebUI at `api.openai.com`.
+- **No pipelines / Milvus / OTEL** env vars yet.
+- **local-path dir SELinux label.** The policy maps `/opt/local-path-provisioner` to `container_file_t`, but the kubelet created it as `usr_t`. The first PVC then failed (`mkdir: Permission denied`, helper "create process timeout"). The `storage` tasks now create the dir and `restorecon` it.
+- Helm logins run as root (Ansible `become`). To use the charts by hand: `sudo -H helm ...`.
+
+### Results (2026-10-31)
+
+```
+$ kubectl exec -n suse-ai deploy/ollama -- ollama ps
+NAME        SIZE      PROCESSOR    CONTEXT
+gemma:2b    1.9 GB    100% GPU     4096
+```
+
+| Model | Speed (RTX 3050 Ti, 4 GB) |
+|---|---|
+| gemma:2b | ~86 tokens/s |
+| llama3.2:3b | ~66 tokens/s |
+
+### Next (optional)
+
+- Vector DB for RAG (Milvus or OpenSearch, guide 4.5/4.6)
+- SUSE Security (NeuVector, guide 3.5)
+- DNS name for `.252`, or a trusted cert
+

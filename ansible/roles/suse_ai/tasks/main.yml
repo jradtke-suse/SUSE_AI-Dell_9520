@@ -11,3 +11,19 @@
 - name: NVIDIA GPU Operator
   ansible.builtin.import_tasks: gpu_operator.yml
   tags: [gpu_operator]
+
+- name: AI Library prerequisites (namespace, pull secrets, registry logins)
+  ansible.builtin.import_tasks: registry.yml
+  tags: [registry]
+
+- name: cert-manager
+  ansible.builtin.import_tasks: cert_manager.yml
+  tags: [cert_manager]
+
+- name: Ollama
+  ansible.builtin.import_tasks: ollama.yml
+  tags: [ollama]
+
+- name: Open WebUI
+  ansible.builtin.import_tasks: open_webui.yml
+  tags: [open_webui]

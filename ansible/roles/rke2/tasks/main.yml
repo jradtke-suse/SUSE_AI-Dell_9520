@@ -109,3 +109,23 @@
     enabled: true
     state: started
   ignore_errors: "{{ ansible_check_mode }}"   # unit doesn't exist yet in --check
+
+- name: Read admin kubeconfig
+  ansible.builtin.slurp:
+    src: /etc/rancher/rke2/rke2.yaml
+  register: rke2_kubeconfig_raw
+  no_log: true
+  when: not ansible_check_mode
+
+- name: Write kubeconfig on the workstation
+  ansible.builtin.copy:
+    dest: "{{ rke2_local_kubeconfig }}"
+    content: >-
+      {{ rke2_kubeconfig_raw.content | b64decode
+         | replace('https://127.0.0.1:6443', rke2_kubeconfig_server)
+         | regex_replace('(?m)^(\s*(- )?(name|cluster|user|current-context):\s*)default$', '\g<1>' ~ inventory_hostname) }}
+    mode: "0600"
+  delegate_to: localhost
+  become: false
+  no_log: true
+  when: not ansible_check_mode

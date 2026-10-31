@@ -44,6 +44,8 @@ repos_update_system: true          # zypper patch after repos are in place
 appco_registry: dp.apps.rancher.io
 appco_username: "{{ vault_appco_username | default('') }}"
 appco_token: "{{ vault_appco_token | default('') }}"
+# SUSE Registry (registry.suse.com) login for SUSE AI: user `regcode`, SUSE AI regcode
+suse_ai_regcode: "{{ vault_suse_ai_regcode | default('') }}"
 
 # ---- wifi (base role) ----
 wifi_networks:

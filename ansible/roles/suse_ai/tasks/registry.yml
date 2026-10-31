@@ -1,0 +1,61 @@
+---
+# Guide 4.3 steps 4-8: namespace, pull secrets, Helm registry logins
+- name: Install PyYAML (needed by kubernetes.core.helm)
+  community.general.zypper:
+    name: python313-PyYAML
+    state: present
+
+- name: Check registry credentials are set
+  ansible.builtin.assert:
+    that:
+      - appco_username | length > 0
+      - appco_token | length > 0
+      - suse_ai_regcode | length > 0
+    fail_msg: "Set vault_appco_username, vault_appco_token and vault_suse_ai_regcode in group_vars/all/vault.yml"
+  no_log: true
+
+- name: Create namespaces
+  ansible.builtin.shell: |
+    set -o pipefail
+    {{ suse_ai_kubectl }} create namespace {{ item }} --dry-run=client -o yaml | {{ suse_ai_kubectl }} apply -f -
+  args:
+    executable: /bin/bash
+  environment:
+    KUBECONFIG: "{{ suse_ai_kubeconfig }}"
+  loop:
+    - "{{ suse_ai_namespace }}"
+    - "{{ cert_manager_namespace }}"
+  register: suse_ai_ns
+  changed_when: "'created' in suse_ai_ns.stdout"
+
+# create --dry-run | apply keeps this idempotent and rotates the secret if the token changes
+- name: Create image pull secrets
+  ansible.builtin.shell: |
+    set -o pipefail
+    {{ suse_ai_kubectl }} create secret docker-registry {{ item.0.name }} \
+      --docker-server={{ item.0.server }} \
+      --docker-username={{ item.0.username }} \
+      --docker-password={{ item.0.password }} \
+      -n {{ item.1 }} --dry-run=client -o yaml | {{ suse_ai_kubectl }} apply -f -
+  args:
+    executable: /bin/bash
+  environment:
+    KUBECONFIG: "{{ suse_ai_kubeconfig }}"
+  loop: "{{ suse_ai_pull_secrets | product([suse_ai_namespace, cert_manager_namespace]) | list }}"
+  vars:
+    suse_ai_pull_secrets:
+      - {name: application-collection, server: "{{ appco_registry }}", username: "{{ appco_username }}", password: "{{ appco_token }}"}
+      - {name: suse-ai-registry, server: "{{ suse_registry }}", username: regcode, password: "{{ suse_ai_regcode }}"}
+  register: suse_ai_secrets
+  changed_when: "'unchanged' not in suse_ai_secrets.stdout"
+  no_log: true
+
+- name: Helm registry logins
+  ansible.builtin.command:
+    argv: ["{{ suse_ai_helm }}", registry, login, "{{ item.server }}", -u, "{{ item.username }}", --password-stdin]
+    stdin: "{{ item.password }}"
+  loop:
+    - {server: "{{ appco_registry }}/charts", username: "{{ appco_username }}", password: "{{ appco_token }}"}
+    - {server: "{{ suse_registry }}", username: regcode, password: "{{ suse_ai_regcode }}"}
+  changed_when: false
+  no_log: true

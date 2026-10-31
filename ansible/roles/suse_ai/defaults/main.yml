@@ -25,3 +25,27 @@ gpu_operator_version: v26.7.2
 gpu_operator_repo: https://helm.ngc.nvidia.com/nvidia
 # Guide: add the toolkit dir to RKE2's PATH so RKE2 picks up nvidia-container-runtime
 gpu_operator_toolkit_dir: /usr/local/nvidia/toolkit
+
+# ---- Chapter 4: AI Library ----
+suse_ai_namespace: suse-ai
+cert_manager_namespace: cert-manager
+suse_ai_helm: /usr/bin/helm
+suse_registry: registry.suse.com
+# Charts from SUSE Application Collection. Empty version = latest at install time.
+appco_chart_base: oci://dp.apps.rancher.io/charts
+cert_manager_chart_version: ""
+
+# ---- Ollama (guide 4.7) ----
+ollama_chart_version: ""
+# 4 GB VRAM: keep to small models. Guide example's llama3.1 (8B, ~4.9 GB) doesn't fit.
+ollama_models_pull:
+  - "gemma:2b"
+  - "llama3.2:3b"
+ollama_models_run:          # preloaded into VRAM; only one fits at a time
+  - "gemma:2b"
+ollama_pv_size: 30Gi
+
+# ---- Open WebUI (guide 4.8, standalone-Ollama variant) ----
+open_webui_chart_version: ""
+open_webui_host: wheatley.homelab.kubernerdes.com
+open_webui_default_model: "gemma:2b"

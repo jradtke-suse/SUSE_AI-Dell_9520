@@ -28,3 +28,5 @@ The guide targets SLES 15 SP6 (or SL Micro 6.1). We're on **SLES 16.0**. Each di
 | Storage | Examples use `local-path` | Not part of RKE2 | local-path-provisioner v0.0.37 from `registry.rancher.com`. Default path is already SELinux-labeled. |
 | GPU Operator | v25.3.4, `DEVICE_LIST_STRATEGY=volume-mounts` | v25.3.4 predates RKE2 v1.36 / containerd 2.3. v26 uses CDI by default, and volume-mounts then breaks GPU pods. | v26.7.2, guide values minus the device-plugin override |
 | Pod DNS | n/a | Pods inherit host search domains. A wildcard LAN domain plus `ndots:5` hijacked external names. | RKE2 `resolv-conf` with nameservers only |
+| local-path storage dir | n/a | Policy labels `/opt/local-path-provisioner` `container_file_t`, but the kubelet-created dir was `usr_t`, so PVCs failed | Create the dir + `restorecon` in the `suse_ai` role |
+| Open WebUI ingress | nginx annotations, `class: ""` | RKE2 v1.36 ingress is traefik | `ingress.class: traefik` |

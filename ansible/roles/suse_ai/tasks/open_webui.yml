@@ -1,0 +1,40 @@
+---
+# Guide 4.8, "Ollama installed separately" variant. No Milvus/pipelines yet
+# (Open WebUI falls back to its built-in vector store).
+- name: Install Open WebUI from Application Collection
+  kubernetes.core.helm:
+    name: open-webui
+    chart_ref: "{{ appco_chart_base }}/open-webui"
+    chart_version: "{{ open_webui_chart_version or omit }}"
+    release_namespace: "{{ suse_ai_namespace }}"
+    binary_path: "{{ suse_ai_helm }}"
+    kubeconfig: "{{ suse_ai_kubeconfig }}"
+    values:
+      global:
+        imagePullSecrets:
+          - application-collection
+        tls:
+          source: suse-private-ai     # self-signed CA via cert-manager
+      ollamaUrls:
+        - "http://ollama.{{ suse_ai_namespace }}.svc.cluster.local:11434"
+      ollama:
+        enabled: false
+      pipelines:
+        enabled: false
+      enableOpenaiApi: false          # chart default points at api.openai.com
+      persistence:
+        enabled: true
+        storageClass: local-path
+      ingress:
+        enabled: true
+        class: traefik                # RKE2 v1.36 default; guide examples assume nginx
+        host: "{{ open_webui_host }}"
+        tls: true
+      extraEnvVars:
+        - {name: DEFAULT_MODELS, value: "{{ open_webui_default_model }}"}
+        - {name: DEFAULT_USER_ROLE, value: user}
+        - {name: WEBUI_NAME, value: SUSE AI}
+        - {name: GLOBAL_LOG_LEVEL, value: INFO}
+        - {name: OMP_NUM_THREADS, value: "1"}
+    wait: true
+    wait_timeout: 15m
