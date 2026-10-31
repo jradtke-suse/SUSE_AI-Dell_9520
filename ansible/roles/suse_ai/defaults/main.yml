@@ -1,0 +1,27 @@
+---
+# SUSE AI 1.0 guide, chapters 3-4, single node (see docs/05-suse-ai.md)
+
+suse_ai_kubectl: /var/lib/rancher/rke2/bin/kubectl
+suse_ai_kubeconfig: /etc/rancher/rke2/rke2.yaml
+# RKE2 applies anything dropped here (and re-applies on change)
+suse_ai_manifest_dir: /var/lib/rancher/rke2/server/manifests
+
+# Helm major version from the SLES 16 product repo (guide: Helm 3; SLES 16 also ships 4.x)
+suse_ai_helm_major: 3
+
+# ---- storage: Rancher local-path-provisioner (single node, test-grade) ----
+# Not in the guide; the guide's examples assume a `local-path` storage class.
+# /opt/local-path-provisioner is already labeled container_file_t by container-selinux.
+local_path_version: v0.0.37
+local_path_image: registry.rancher.com/rancher/local-path-provisioner
+local_path_helper_image: registry.rancher.com/rancher/mirrored-library-busybox:1.37.0
+local_path_dir: /opt/local-path-provisioner
+local_path_default: true
+
+# ---- NVIDIA GPU Operator (guide 3.2) ----
+# Guide pins v25.3.4 (mid-2025). RKE2 v1.36 / containerd 2.3 is newer than that,
+# so use a current release. Values are the guide's.
+gpu_operator_version: v26.7.2
+gpu_operator_repo: https://helm.ngc.nvidia.com/nvidia
+# Guide: add the toolkit dir to RKE2's PATH so RKE2 picks up nvidia-container-runtime
+gpu_operator_toolkit_dir: /usr/local/nvidia/toolkit

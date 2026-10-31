@@ -1,0 +1,19 @@
+---
+- name: Deploy local-path-provisioner via RKE2 manifests dir
+  ansible.builtin.template:
+    src: local-path-storage.yaml.j2
+    dest: "{{ suse_ai_manifest_dir }}/local-path-storage.yaml"
+    mode: "0600"
+
+- name: Wait for local-path-provisioner
+  ansible.builtin.command: >-
+    {{ suse_ai_kubectl }} -n local-path-storage rollout status
+    deploy/local-path-provisioner --timeout=30s
+  environment:
+    KUBECONFIG: "{{ suse_ai_kubeconfig }}"
+  register: local_path_rollout
+  until: local_path_rollout.rc == 0
+  retries: 10
+  delay: 10
+  changed_when: false
+  when: not ansible_check_mode

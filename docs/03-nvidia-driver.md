@@ -15,7 +15,7 @@ Follows [SUSE AI guide §2.2.1](https://documentation.suse.com/suse-ai/1.0/html/
 
 ```bash
 ansible-playbook site.yml --tags nvidia
-ssh mansible@192.168.0.103 sudo reboot
+ssh mansible@10.10.12.252 sudo reboot
 ```
 
 ## Manual equivalent (as on SLES 16)
@@ -49,3 +49,17 @@ mokutil --sb-state
 - ✅ `nvidia-smi` after reboot: **NVIDIA GeForce RTX 3050 Ti Laptop GPU**, 4096 MiB, Driver 580.178.04, CUDA 13.0, Persistence-M On
 - Modules loaded: `nvidia`, `nvidia_uvm`, `nvidia_modeset`, `nvidia_drm`. No nouveau. `nvidia-persistenced` is active.
 - ⚠️ `mokutil --sb-state`: **SecureBoot disabled, Platform is in Setup Mode**. The SUSE-signed module would load with Secure Boot on, but it hasn't been tested that way yet. See 00-hardware.
+
+## zypper locks (added 2026-10-30)
+
+A plain `zypper up` upgraded the userspace to NVIDIA's 580.196.07 from the CUDA repo. To match, it then installed NVIDIA's **DKMS** `nvidia-open-driver-G06` (built locally, unsigned) plus gcc and kernel-devel. The result was `Failed to initialize NVML: Driver/library version mismatch` against SUSE's signed 580.178.04 module.
+
+Fix (the `nvidia` role does all of this):
+- Downgrade the userspace to the KMP version (`zypper in --oldpackage ...=580.178.04`). Remove `nvidia-open-driver-G06`, `dkms`.
+- `zypper addlock` on the userspace packages (`nvidia_locked_packages`) and on `nvidia-open-driver-G06` + `dkms` (blocks the DKMS path).
+- When SUSE ships a newer signed KMP, the role sees the version difference, unlocks, installs the matching userspace and re-locks.
+
+```bash
+sudo zypper locks          # 11 nvidia/dkms locks
+zypper up --dry-run        # NVIDIA packages are held back
+```

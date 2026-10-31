@@ -1,0 +1,27 @@
+# Managed by Ansible (suse_ai role). SUSE AI 1.0 guide section 3.2.
+# Values are the guide's; chart version is newer (see docs/sles16-deltas.md).
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: gpu-operator
+  namespace: kube-system
+spec:
+  repo: {{ gpu_operator_repo }}
+  chart: gpu-operator
+  version: {{ gpu_operator_version }}
+  targetNamespace: gpu-operator
+  createNamespace: true
+  valuesContent: |-
+    driver:
+      enabled: "false"
+    toolkit:
+      env:
+      - name: CONTAINERD_SOCKET
+        value: /run/k3s/containerd/containerd.sock
+      - name: ACCEPT_NVIDIA_VISIBLE_DEVICES_ENVVAR_WHEN_UNPRIVILEGED
+        value: "false"
+      - name: ACCEPT_NVIDIA_VISIBLE_DEVICES_AS_VOLUME_MOUNTS
+        value: "true"
+    # Guide (v25.3.4) sets devicePlugin DEVICE_LIST_STRATEGY=volume-mounts.
+    # Dropped: v26 enables CDI by default, and volume-mounts then makes the runtime
+    # ask for a per-GPU CDI device nobody generated ("unresolvable CDI devices").

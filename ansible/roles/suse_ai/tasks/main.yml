@@ -1,8 +1,13 @@
 ---
-# TODO: placeholder. See docs/05-suse-ai.md.
-# 1. NVIDIA GPU Operator (driver.enabled=false, toolkit pointed at RKE2 containerd)
-# 2. Application Collection registry login
-# 3. Ollama / Open WebUI / Milvus via Helm
-- name: SUSE AI role placeholder
-  ansible.builtin.debug:
-    msg: "suse_ai role not implemented yet"
+# SUSE AI 1.0 guide chapters 3-4 on a single RKE2 node. See docs/05-suse-ai.md.
+- name: Helm
+  ansible.builtin.import_tasks: helm.yml
+  tags: [helm]
+
+- name: Storage (local-path)
+  ansible.builtin.import_tasks: storage.yml
+  tags: [storage]
+
+- name: NVIDIA GPU Operator
+  ansible.builtin.import_tasks: gpu_operator.yml
+  tags: [gpu_operator]

@@ -1,0 +1,61 @@
+---
+# notifies `restart rke2-server`, defined in the rke2 role
+# Guide 3.2: host driver already installed (nvidia role), operator only adds
+# toolkit + device plugin. RKE2 finds nvidia-container-runtime via PATH.
+- name: Add NVIDIA toolkit dir to RKE2's PATH
+  ansible.builtin.lineinfile:
+    path: /etc/default/rke2-server
+    regexp: '^PATH='
+    line: "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:{{ gpu_operator_toolkit_dir }}"
+    create: true
+    mode: "0644"
+  notify: restart rke2-server
+
+- name: Deploy GPU Operator HelmChart via RKE2 manifests dir
+  ansible.builtin.template:
+    src: gpu-operator.yaml.j2
+    dest: "{{ suse_ai_manifest_dir }}/gpu-operator.yaml"
+    mode: "0600"
+
+- name: Wait for NVIDIA container toolkit on the host
+  ansible.builtin.stat:
+    path: "{{ gpu_operator_toolkit_dir }}/nvidia-container-runtime"
+  register: gpu_toolkit_bin
+  until: gpu_toolkit_bin.stat.exists
+  retries: 60
+  delay: 10
+  when: not ansible_check_mode
+
+- name: Check RKE2 containerd config has the nvidia runtime
+  ansible.builtin.command: grep -q nvidia /var/lib/rancher/rke2/agent/etc/containerd/config.toml
+  register: gpu_containerd_nvidia
+  changed_when: gpu_containerd_nvidia.rc != 0
+  failed_when: false
+  notify: restart rke2-server
+  when: not ansible_check_mode
+
+- name: Restart RKE2 now if needed
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for GPU to be allocatable
+  # argv form: a plain command string would let shlex eat the backslash in nvidia\.com
+  ansible.builtin.command:
+    argv:
+      - "{{ suse_ai_kubectl }}"
+      - get
+      - node
+      - "{{ ansible_facts.hostname }}"
+      - -o
+      - jsonpath={.status.allocatable.nvidia\.com/gpu}
+  environment:
+    KUBECONFIG: "{{ suse_ai_kubeconfig }}"
+  register: gpu_allocatable
+  until: gpu_allocatable.rc == 0 and (gpu_allocatable.stdout | int) > 0
+  retries: 60
+  delay: 10
+  changed_when: false
+  when: not ansible_check_mode
+
+- name: GPU allocatable
+  ansible.builtin.debug:
+    msg: "nvidia.com/gpu allocatable on {{ ansible_facts.hostname }}: {{ gpu_allocatable.stdout | default('n/a') }}"

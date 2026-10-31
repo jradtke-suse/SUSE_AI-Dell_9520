@@ -16,11 +16,23 @@
     state: directory
     mode: "0755"
 
+- name: Write resolv.conf for pods (no search domains)
+  ansible.builtin.copy:
+    dest: /etc/rancher/rke2/resolv.conf
+    content: |
+      # Managed by Ansible (rke2 role). Used by kubelet/CoreDNS instead of /etc/resolv.conf.
+      {% for ns in rke2_pod_nameservers %}
+      nameserver {{ ns }}
+      {% endfor %}
+    mode: "0644"
+  notify: restart rke2-server
+
 - name: Write RKE2 config
   ansible.builtin.copy:
     dest: /etc/rancher/rke2/config.yaml
     content: "{{ rke2_config | to_nice_yaml }}"
     mode: "0600"
+  notify: restart rke2-server
 
 - name: Import Rancher RPM signing key
   ansible.builtin.rpm_key:

@@ -23,7 +23,7 @@ rke2_channel: stable        # or pin rke2_version
 rke2_version: ""
 
 # ---- suse_ai ----
-suse_ai_enabled: false      # flip on once RKE2 + GPU are verified
+suse_ai_enabled: true       # RKE2 + GPU driver verified 2026-10-30
 
 # ---- registration (SCC direct) ----
 # Secrets live in group_vars/all/vault.yml (ansible-vault encrypted).

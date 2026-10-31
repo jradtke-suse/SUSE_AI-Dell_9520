@@ -25,7 +25,7 @@ What it does:
 Ansible runs from your workstation (e.g. a Mac: `brew install ansible`) against the host listed in `ansible/inventory/hosts.yml`.
 
 ```bash
-ssh-copy-id mansible@192.168.0.103          # key-based login first
+ssh-copy-id mansible@10.10.12.252          # key-based login first
 cd ansible
 ansible-galaxy collection install -r requirements.yml
 ```
@@ -91,7 +91,7 @@ The role removes those options (listed in `bootloader_cmdline_remove`), keeps ev
 
 ```bash
 ansible-playbook site.yml --tags bootloader
-ssh mansible@192.168.0.103 sudo reboot
+ssh mansible@10.10.12.252 sudo reboot
 ```
 
 Result on wheatley (2026-10-30):

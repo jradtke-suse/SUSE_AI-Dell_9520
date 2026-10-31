@@ -33,12 +33,46 @@
     autorefresh: true
     state: present
 
-- name: Install NVIDIA utils pinned to driver version
-  community.general.zypper:
-    name: "{{ (nvidia_utils_packages + (['nvidia-gl-G06'] if nvidia_install_gl | bool else [])) | map('regex_replace', '$', '=' ~ nvidia_version) | list }}"
-    state: present
-  when: nvidia_version | length > 0   # empty only in --check before the driver is installed
+- name: Read installed NVIDIA userspace version
+  ansible.builtin.command: rpm -q --queryformat '%{VERSION}' nvidia-compute-utils-G06
+  register: nvidia_utils_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Read zypper locks
+  ansible.builtin.command: zypper --quiet locks
+  register: nvidia_zypper_locks
+  changed_when: false
+  check_mode: false
+
+- name: Pin NVIDIA userspace to the driver version
+  when:
+    - nvidia_version | length > 0   # empty only in --check before the driver is installed
+    - nvidia_utils_installed.stdout != nvidia_version
   notify: reboot required
+  block:
+    - name: Unlock NVIDIA userspace
+      ansible.builtin.command: zypper --quiet removelock {{ nvidia_locked_packages | join(' ') }}
+      changed_when: true
+
+    - name: Install NVIDIA utils pinned to driver version (downgrade if needed)
+      community.general.zypper:
+        name: "{{ (nvidia_utils_packages + (['nvidia-gl-G06'] if nvidia_install_gl | bool else [])) | map('regex_replace', '$', '=' ~ nvidia_version) | list }}"
+        state: present
+        oldpackage: true
+
+    - name: Remove NVIDIA DKMS driver if present
+      community.general.zypper:
+        name: "{{ nvidia_blocked_packages }}"
+        state: absent
+
+- name: Lock NVIDIA userspace and block the DKMS driver
+  ansible.builtin.command: zypper --quiet addlock {{ item }}
+  loop: "{{ nvidia_locked_packages + nvidia_blocked_packages }}"
+  when: >-
+    item not in (nvidia_zypper_locks.stdout_lines | map('regex_replace', '^\\s*\\d+\\s*\\|\\s*(\\S+).*$', '\\1') | list)
+    or nvidia_utils_installed.stdout != nvidia_version
 
 - name: Show driver version
   ansible.builtin.debug:

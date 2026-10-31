@@ -1,0 +1,38 @@
+---
+# Guide asks for Helm 3. SLES 16 ships both 3.x and 4.x and `zypper up` moves to 4,
+# so install 3.x with --oldpackage and lock it.
+- name: Read installed Helm version
+  ansible.builtin.command: rpm -q --queryformat '%{VERSION}' helm
+  register: helm_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Install Helm 3 and lock it
+  when: not helm_installed.stdout.startswith(suse_ai_helm_major ~ '.')
+  block:
+    - name: Unlock Helm
+      ansible.builtin.command: zypper --quiet removelock helm helm-bash-completion
+      changed_when: true
+
+    - name: Find newest matching Helm major in the repos
+      ansible.builtin.shell: |
+        set -o pipefail
+        zypper --quiet --no-refresh search -s --match-exact -t package helm \
+          | awk -F'|' '{gsub(/ /,"",$4)} $4 ~ /^{{ suse_ai_helm_major }}\./ {print $4}' | sort -V | tail -n1
+      args:
+        executable: /bin/bash
+      register: helm_target
+      changed_when: false
+
+    - name: Install Helm 3 (downgrade if needed)
+      community.general.zypper:
+        name:
+          - "helm={{ helm_target.stdout }}"
+          - "helm-bash-completion={{ helm_target.stdout }}"
+        state: present
+        oldpackage: true
+
+    - name: Lock Helm
+      ansible.builtin.command: zypper --quiet addlock helm helm-bash-completion
+      changed_when: true

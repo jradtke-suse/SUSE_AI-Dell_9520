@@ -4,7 +4,7 @@ SUSE AI runs on a Rancher-managed Kubernetes cluster. On a single laptop, the pl
 
 - [x] Single-node RKE2 server (`ansible-playbook site.yml --tags rke2`)
 - [x] `kubectl` on the host (`/etc/profile.d/rke2.sh` adds `/var/lib/rancher/rke2/bin` to PATH and sets `KUBECONFIG`)
-- [ ] `helm` (needed for chapter 4)
+- [x] `helm` 3.21.3 (SLES 16 product repo, locked; see [05](05-suse-ai.md))
 - [ ] Rancher Prime: **skipped for now.** Guide §3.1 wants it on a separate cluster. Revisit if we want the UI.
 
 ## Verify
@@ -40,4 +40,20 @@ wheatley   Ready    control-plane,etcd   v1.36.5+rke2r1   192.168.0.103   SUSE L
 ## Notes
 
 - **firewalld stays on.** Opened 6443/tcp, 9345/tcp, 10250/tcp, and added the pod CIDR `10.42.0.0/16` and the service CIDR `10.43.0.0/16` to the `trusted` zone so in-cluster traffic isn't dropped.
-- Node IP is the wired NIC (192.168.0.103, the default route). If the laptop moves to WiFi-only, the node IP changes and RKE2 will need `node-ip` set or a reinstall.
+- **Pod DNS has no search domains.** RKE2 `resolv-conf: /etc/rancher/rke2/resolv.conf` lists the host's nameservers only. On the old LAN, DHCP pushed `evil.corp` (wildcard record pointing to 192.168.1.10) as a search domain. With `ndots:5`, pods resolved `helm.ngc.nvidia.com` as `helm.ngc.nvidia.com.evil.corp` and the GPU Operator chart download failed.
+- Node IP is the default-route NIC. It isn't pinned, because a laptop moves between networks.
+
+## Changing the node IP (moving networks)
+
+2026-10-30: wheatley moved from 192.168.0.103 to **10.10.12.252** (KUBERNERDES wired). etcd stays bound to the old IP, so RKE2 can't come back on its own. On a single node, reset etcd membership. Workloads and data are kept.
+
+```bash
+# 1. update ansible/inventory/hosts.yml (ansible_host)
+sudo systemctl stop rke2-server
+sudo /opt/rke2/bin/rke2 server --cluster-reset   # exits with "restart without --cluster-reset flag now"
+# 2. re-run the role: rewrites resolv.conf (new nameservers) and starts rke2-server
+ansible-playbook site.yml --tags rke2
+kubectl get nodes -o wide                      # INTERNAL-IP is the new address
+```
+
+10.10.12.252 is a DHCP reservation on the KUBERNERDES network, so the node IP stays put.

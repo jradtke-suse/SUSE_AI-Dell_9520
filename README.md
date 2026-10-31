@@ -20,7 +20,7 @@ This will provide guidance, step-by-step, on how to deploy SUSE AI 1.0 on a Dell
 | 3 | Base OS config | [docs/02-post-install.md](docs/02-post-install.md) | `ansible` role `base` | ⬜ |
 | 4 | NVIDIA open driver + compute utils | [docs/03-nvidia-driver.md](docs/03-nvidia-driver.md) | `ansible` role `nvidia` | ✅ 580.178.04 |
 | 5 | Kubernetes (RKE2, single node) | [docs/04-kubernetes-rke2.md](docs/04-kubernetes-rke2.md) | `ansible` role `rke2` | ✅ v1.36.5+rke2r1 |
-| 6 | SUSE AI stack | [docs/05-suse-ai.md](docs/05-suse-ai.md) | `ansible` role `suse_ai` (stub) | ⬜ |
+| 6 | SUSE AI stack | [docs/05-suse-ai.md](docs/05-suse-ai.md) | `ansible` role `suse_ai` | 🟡 ch.3 done (GPU Operator, storage); ch.4 next |
 | – | Troubleshooting log | [docs/troubleshooting.md](docs/troubleshooting.md) | – | – |
 
 ## Repo layout
@@ -54,7 +54,7 @@ This will provide guidance, step-by-step, on how to deploy SUSE AI 1.0 on a Dell
 
 ```bash
 # On the host console after first boot: sudo systemctl enable sshd --now
-ssh-copy-id mansible@192.168.0.103
+ssh-copy-id mansible@10.10.12.252
 cd ansible
 ansible-galaxy collection install -r requirements.yml
 ansible-playbook site.yml --tags sudo -K     # ROOT password (SLES targetpw); one time only

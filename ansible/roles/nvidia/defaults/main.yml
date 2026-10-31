@@ -15,3 +15,22 @@ nvidia_utils_packages:
 
 # nvidia-gl-G06: only if something needs Vulkan
 nvidia_install_gl: false
+
+# zypper locks. NVIDIA's CUDA repo carries newer userspace (e.g. 580.196.07) than
+# SUSE's signed KMP. Without locks, `zypper up` upgrades the userspace, then pulls
+# NVIDIA's DKMS driver to match (unsigned, built locally) -> NVML version mismatch.
+# The role unlocks, pins and re-locks these on each run.
+nvidia_locked_packages:
+  - nvidia-compute-utils-G06
+  - nvidia-compute-G06
+  - nvidia-common-G06
+  - nvidia-gl-G06
+  - nvidia-persistenced
+  - nvidia-modprobe
+  - libnvidia-ml
+  - libnvidia-cfg
+  - libnvidia-gpucomp
+# Never install these (NVIDIA's DKMS driver path)
+nvidia_blocked_packages:
+  - nvidia-open-driver-G06
+  - dkms
