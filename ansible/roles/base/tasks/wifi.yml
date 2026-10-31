@@ -1,0 +1,21 @@
+---
+- name: Find WiFi interface
+  ansible.builtin.set_fact:
+    wifi_ifname: "{{ ansible_facts.interfaces | select('match', '^wl') | reject('match', '^p2p') | first | default('') }}"
+
+- name: Add WiFi connections
+  community.general.nmcli:
+    conn_name: "{{ item.ssid }}"
+    type: wifi
+    ifname: "{{ wifi_ifname }}"
+    ssid: "{{ item.ssid }}"
+    wifi_sec:
+      key-mgmt: wpa-psk
+      psk: "{{ item.psk }}"
+    autoconnect: true
+    state: present
+  loop: "{{ wifi_networks }}"
+  loop_control:
+    label: "{{ item.ssid }}"
+  no_log: true
+  when: wifi_ifname | length > 0

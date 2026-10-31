@@ -22,3 +22,11 @@
     immediate: true
     state: enabled
   loop: "{{ firewall_ports }}"
+
+- name: WiFi
+  ansible.builtin.import_tasks: wifi.yml
+  tags: [wifi]
+
+- name: GNOME power settings
+  ansible.builtin.import_tasks: gnome_power.yml
+  tags: [gnome_power]

@@ -1,0 +1,20 @@
+---
+# GNOME: on AC power, never auto-suspend when idle (per user, via gsettings)
+- name: Read current AC idle sleep action
+  ansible.builtin.command: dbus-run-session -- gsettings get org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type
+  become: true
+  become_user: "{{ item }}"
+  register: gnome_ac_sleep
+  changed_when: false
+  check_mode: false
+  loop: "{{ gnome_no_sleep_on_ac_users }}"
+
+- name: Disable idle suspend on AC
+  ansible.builtin.command: dbus-run-session -- gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing'
+  become: true
+  become_user: "{{ item.item }}"
+  loop: "{{ gnome_ac_sleep.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: item.stdout | trim != "'nothing'"
+  changed_when: true

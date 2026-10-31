@@ -6,3 +6,5 @@ vault_suse_ai_regcode: "XXXXXXXXXXXXXX"   # optional, only if SUSE AI is an SCC 
 # SUSE Application Collection (https://apps.rancher.io): username/email + access token
 vault_appco_username: "you@suse.com"   # AppCo login, may differ from the SCC email
 vault_appco_token: "XXXXXXXXXXXXXX"
+# WiFi PSKs
+vault_wifi_kubernerdes_psk: "XXXXXXXX"

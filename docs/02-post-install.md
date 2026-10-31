@@ -129,6 +129,9 @@ Covers (edit `group_vars/all/main.yml`):
 - Base packages
 - Services (sshd, firewalld, chronyd)
 - Firewall ports
+- **WiFi** (`--tags wifi`): NetworkManager connections from `wifi_networks`. PSKs live in the vault (`vault_wifi_*_psk`). Stored by NM in `/etc/NetworkManager/system-connections/<ssid>.nmconnection` (0600 root).
+  - wheatley: `KUBERNERDES` on `wlp0s20f3` gets `10.10.12.0/22`. Wired (`192.168.0.0/24`, metric 100) stays the preferred default route over WiFi (metric 20600).
+- **GNOME power** (`--tags gnome_power`): for each user in `gnome_no_sleep_on_ac_users`, sets `org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type` to `'nothing'` (no idle suspend on AC). Battery behaviour and lid-close (logind) are unchanged.
 
 ## Notes / Decisions
 

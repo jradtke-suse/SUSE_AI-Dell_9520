@@ -44,3 +44,13 @@ repos_update_system: true          # zypper patch after repos are in place
 appco_registry: dp.apps.rancher.io
 appco_username: "{{ vault_appco_username | default('') }}"
 appco_token: "{{ vault_appco_token | default('') }}"
+
+# ---- wifi (base role) ----
+wifi_networks:
+  - ssid: KUBERNERDES
+    psk: "{{ vault_wifi_kubernerdes_psk }}"
+
+# ---- GNOME power (base role) ----
+# Don't suspend when idle on AC power, for these users
+gnome_no_sleep_on_ac_users:
+  - mansible
