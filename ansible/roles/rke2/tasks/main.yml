@@ -50,17 +50,21 @@
     set -o pipefail
     curl -sfL https://get.rke2.io/ | \
       INSTALL_RKE2_METHOD=tar \
+      INSTALL_RKE2_TAR_PREFIX={{ rke2_install_prefix }} \
       INSTALL_RKE2_ARTIFACT_URL={{ rke2_artifact_url }}/rke2 \
       {% if rke2_version %}INSTALL_RKE2_VERSION={{ rke2_version }}{% else %}INSTALL_RKE2_CHANNEL={{ rke2_channel }}{% endif %} sh -
   args:
     executable: /bin/bash
-    creates: /usr/local/bin/rke2
+    creates: "{{ rke2_install_prefix }}/bin/rke2"
+  register: rke2_install
 
 - name: Restore SELinux labels on RKE2 binaries
-  ansible.builtin.command: restorecon -RFv /usr/local/bin/rke2 /usr/local/bin/rke2-killall.sh /usr/local/bin/rke2-uninstall.sh /var/lib/rancher /etc/rancher
+  # Only right after install, and only the binaries. Never -F on /var/lib/rancher:
+  # it would reset per-container MCS labels on running workloads.
+  ansible.builtin.command: restorecon -Rv {{ rke2_install_prefix }}
   register: rke2_restorecon
   changed_when: rke2_restorecon.stdout | length > 0
-  when: rke2_selinux | bool and not ansible_check_mode
+  when: rke2_selinux | bool and rke2_install is changed
 
 - name: Open RKE2 firewall ports
   ansible.posix.firewalld:
@@ -69,6 +73,23 @@
     immediate: true
     state: enabled
   loop: "{{ rke2_firewall_ports }}"
+
+- name: Trust pod and service networks in firewalld
+  ansible.posix.firewalld:
+    zone: trusted
+    source: "{{ item }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop: "{{ rke2_trusted_cidrs }}"
+
+- name: Put RKE2 tools (kubectl, crictl) on PATH
+  ansible.builtin.copy:
+    dest: /etc/profile.d/rke2.sh
+    content: |
+      export PATH=$PATH:/var/lib/rancher/rke2/bin
+      export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
+    mode: "0644"
 
 - name: Enable and start rke2-server
   ansible.builtin.systemd_service:

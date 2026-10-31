@@ -19,7 +19,7 @@ This will provide guidance, step-by-step, on how to deploy SUSE AI 1.0 on a Dell
 | 3d | Bootloader: failsafe options cleanup + Windows entry | [docs/02-post-install.md](docs/02-post-install.md) | `ansible` role `bootloader` | ✅ |
 | 3 | Base OS config | [docs/02-post-install.md](docs/02-post-install.md) | `ansible` role `base` | ⬜ |
 | 4 | NVIDIA open driver + compute utils | [docs/03-nvidia-driver.md](docs/03-nvidia-driver.md) | `ansible` role `nvidia` | ✅ 580.178.04 |
-| 5 | Kubernetes (RKE2, single node) | [docs/04-kubernetes-rke2.md](docs/04-kubernetes-rke2.md) | `ansible` role `rke2` | ⬜ |
+| 5 | Kubernetes (RKE2, single node) | [docs/04-kubernetes-rke2.md](docs/04-kubernetes-rke2.md) | `ansible` role `rke2` | ✅ v1.36.5+rke2r1 |
 | 6 | SUSE AI stack | [docs/05-suse-ai.md](docs/05-suse-ai.md) | `ansible` role `suse_ai` (stub) | ⬜ |
 | – | Troubleshooting log | [docs/troubleshooting.md](docs/troubleshooting.md) | – | – |
 

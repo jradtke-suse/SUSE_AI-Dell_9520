@@ -7,6 +7,10 @@ rke2_artifact_url: https://prime.ribs.rancher.io
 # Use the `sle` build (not `slemicro`): it requires selinux-policy-base >= 20230523,
 # which matches SLES 16's newer policy.
 rke2_selinux: true
+
+# SLES 16 makes /usr/local its own btrfs subvolume, so the installer would pick
+# /opt/rke2 anyway. Set it explicitly so paths are predictable.
+rke2_install_prefix: /opt/rke2
 rke2_selinux_repo_url: https://rpm.rancher.io/rke2/stable/common/sle/noarch
 rke2_selinux_gpg_key: https://rpm.rancher.io/public.key
 
@@ -19,3 +23,9 @@ rke2_firewall_ports:
   - 6443/tcp
   - 9345/tcp
   - 10250/tcp
+
+# firewalld stays on (SLES default). Trust the RKE2 default cluster/service CIDRs
+# so pod-to-pod and pod-to-host traffic isn't dropped.
+rke2_trusted_cidrs:
+  - 10.42.0.0/16
+  - 10.43.0.0/16

@@ -19,5 +19,8 @@ The guide targets SLES 15 SP6 (or SL Micro 6.1). We're on **SLES 16.0**. Each di
 | MAC framework | AppArmor (`apparmor-parser`) | **SELinux, Enforcing**. AppArmor not installed. `container-selinux` is in SLES 16, but `rke2-selinux` isn't. | Keep SELinux. Add Rancher repo `rpm.rancher.io/rke2/stable/common/sle/noarch` (the `sle` build, not `slemicro`: it needs policy ≥ 20230523, SLES 16 has 20250627), install `rke2-selinux`, set `selinux: true` |
 | NetworkManager | "configure it to ignore CNI interfaces" | NM is active | Drop `/etc/NetworkManager/conf.d/rke2-canal.conf` (`unmanaged-devices=interface-name:flannel*;interface-name:cali*`) |
 | RKE2 source | get.rke2.io with `INSTALL_RKE2_ARTIFACT_URL=<PRIME-ARTIFACTS-URL>/rke2` | Same. `https://prime.ribs.rancher.io` is public (no credentials) but has no directory listing, so only real versions return 200. | `rke2_artifact_url`, `INSTALL_RKE2_METHOD=tar`, then `restorecon` on the binaries |
+| RKE2 install path | `/usr/local/bin/rke2` | `/usr/local` is its own btrfs subvolume, so the installer falls back to `/opt/rke2` | `rke2_install_prefix: /opt/rke2` (explicit). `restorecon` on that. |
+| Firewall | Not covered | firewalld active | Open 6443, 9345, 10250 and trust `10.42.0.0/16` + `10.43.0.0/16` |
+| Ingress | Docs and charts often assume ingress-nginx | RKE2 v1.36 ships **traefik** as the default IngressClass | Use `traefik` in chart values |
 | RKE2 registry | `system-default-registry: registry.rancher.com` | Same | Written to `/etc/rancher/rke2/config.yaml` |
 | CPU governor | `performance` | Laptop: a trade-off with heat and battery | Optional, off by default |
