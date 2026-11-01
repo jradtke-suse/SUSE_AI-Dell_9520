@@ -42,8 +42,7 @@ rke2_trusted_cidrs:
 
 # Extra names on the API server cert (the node IP is always included)
 rke2_tls_san:
-  - "glados.{{ domain }}"          # wired .252
-  - "{{ hostname }}.{{ domain }}"  # WiFi .249
+  - "{{ hostname }}.{{ domain }}"
   - "{{ ansible_host }}"
 
 # Admin kubeconfig copied to the workstation (Ansible controller)

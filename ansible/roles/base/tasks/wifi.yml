@@ -19,3 +19,28 @@
     label: "{{ item.ssid }}"
   no_log: true
   when: wifi_ifname | length > 0
+
+# WiFi identifies itself as <host>-wifi to DHCP (and any DDNS behind it), so the
+# host name stays on the wired address.
+- name: Read WiFi DHCP hostname
+  ansible.builtin.command: nmcli -g ipv4.dhcp-hostname connection show {{ item.ssid }}
+  loop: "{{ wifi_networks }}"
+  loop_control:
+    label: "{{ item.ssid }}"
+  register: wifi_dhcp_name
+  changed_when: false
+  check_mode: false
+  when: wifi_ifname | length > 0 and wifi_dhcp_hostname | default('') | length > 0
+
+- name: Set WiFi DHCP hostname and reconnect
+  ansible.builtin.shell: |
+    nmcli connection modify {{ item.item.ssid | quote }} \
+      ipv4.dhcp-hostname {{ wifi_dhcp_hostname }} ipv6.dhcp-hostname {{ wifi_dhcp_hostname }}
+    # re-lease so DHCP sees the new name (only if the connection is up)
+    if nmcli -t -f NAME connection show --active | grep -qx {{ item.item.ssid | quote }}; then
+      nmcli connection up {{ item.item.ssid | quote }}
+    fi
+  loop: "{{ wifi_dhcp_name.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.ssid | default('') }}"
+  when: item.stdout is defined and item.stdout != wifi_dhcp_hostname

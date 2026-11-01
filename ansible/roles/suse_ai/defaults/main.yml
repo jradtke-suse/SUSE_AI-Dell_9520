@@ -58,7 +58,7 @@ ollama_pv_size: 30Gi
 
 # ---- Open WebUI (guide 4.8, standalone-Ollama variant) ----
 open_webui_chart_version: ""
-open_webui_host: "{{ ansible_fqdn }}"   # group_vars sets glados.<domain>
+open_webui_host: "{{ ansible_fqdn }}"
 open_webui_default_model: "gemma:2b"
 # ClusterIssuer for the Open WebUI cert. "" = chart's self-signed suse-private-ai CA.
 open_webui_cert_issuer: letsencrypt-prod

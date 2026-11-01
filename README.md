@@ -23,6 +23,8 @@ This will provide guidance, step-by-step, on how to deploy SUSE AI 1.0 on a Dell
 | 6 | SUSE AI stack | [docs/05-suse-ai.md](docs/05-suse-ai.md) | `ansible` role `suse_ai` | ✅ Ollama (GPU) + Open WebUI |
 | – | Troubleshooting log | [docs/troubleshooting.md](docs/troubleshooting.md) | – | – |
 
+Open items and ideas: [docs/backlog.md](docs/backlog.md) (next up: LiteLLM on SLE 16 VMs).
+
 ## Repo layout
 
 ```
