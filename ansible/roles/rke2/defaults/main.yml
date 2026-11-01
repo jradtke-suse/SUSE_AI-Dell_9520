@@ -19,6 +19,7 @@ rke2_config:
   selinux: "{{ rke2_selinux }}"
   write-kubeconfig-mode: "0644"
   resolv-conf: /etc/rancher/rke2/resolv.conf
+  tls-san: "{{ rke2_tls_san }}"
 
 # Pods get these nameservers with NO search domains. The LAN's DHCP search list
 # (evil.corp, matrix.lab) plus ndots:5 sent lookups like helm.ngc.nvidia.com to
@@ -38,6 +39,12 @@ rke2_firewall_ports:
 rke2_trusted_cidrs:
   - 10.42.0.0/16
   - 10.43.0.0/16
+
+# Extra names on the API server cert (the node IP is always included)
+rke2_tls_san:
+  - "glados.{{ domain }}"          # wired .252
+  - "{{ hostname }}.{{ domain }}"  # WiFi .249
+  - "{{ ansible_host }}"
 
 # Admin kubeconfig copied to the workstation (Ansible controller)
 rke2_local_kubeconfig: "~/.kube/homelab-{{ inventory_hostname }}.kubeconfig"

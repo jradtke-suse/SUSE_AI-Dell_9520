@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: open-webui-le
+  namespace: {{ suse_ai_namespace }}
+spec:
+  secretName: open-webui-le-tls
+  dnsNames:
+    - {{ open_webui_host }}
+  issuerRef:
+    kind: ClusterIssuer
+    name: {{ open_webui_cert_issuer }}

@@ -8,3 +8,6 @@ vault_appco_username: "you@suse.com"   # AppCo login, may differ from the SCC em
 vault_appco_token: "XXXXXXXXXXXXXX"
 # WiFi PSKs
 vault_wifi_kubernerdes_psk: "XXXXXXXX"
+
+vault_route53_access_key_id: "AKIAXXXXXXXXXXXXXXXX"
+vault_route53_secret_access_key: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"

@@ -55,12 +55,28 @@ Run with `ansible-playbook site.yml --tags suse_ai` (or `--tags registry`, `cert
 | 4.4 | cert-manager **1.21.3** (`oci://dp.apps.rancher.io/charts/cert-manager`, `crds.enabled=true`) | ✅ |
 | 4.5/4.6 | OpenSearch / Milvus | ⏭ not yet. Open WebUI uses its built-in vector store. |
 | 4.7 | Ollama chart **1.93.0** (app 0.40.12), GPU on, 30Gi `local-path` PV. Models `gemma:2b`, `llama3.2:3b`. | ✅ 100% GPU |
-| 4.8 | Open WebUI chart **8.19.1** (app 0.6.41), standalone-Ollama variant, ingress **traefik**, TLS from cert-manager's `suse-private-ai` self-signed CA | ✅ |
+| 4.8 | Open WebUI chart **8.19.1** (app 0.6.41), standalone-Ollama variant, ingress **traefik**, TLS from **Let's Encrypt** (Route53 DNS-01) | ✅ |
 
-**Open WebUI:** https://wheatley.homelab.kubernerdes.com
+**Open WebUI:** https://glados.homelab.kubernerdes.com (the AI on wheatley is GLaDOS)
 - The first account you create becomes the admin.
-- The cert is self-signed (issuer `CN=suse-private-ai-selfsigned-ca`), so expect a browser warning.
-- That name resolves to the WiFi IP (`.249`). Traefik listens on all host interfaces, so it works either way.
+- The certificate is a trusted Let's Encrypt cert, so there's no browser warning.
+
+### Names (DNS is managed outside this repo)
+
+| Name | Address | Notes |
+|---|---|---|
+| `glados.homelab.kubernerdes.com` | 10.10.12.252 (wired, DHCP reservation) | Node IP, Open WebUI. **The A record must exist in the LAN DNS (10.10.12.10).** |
+| `wheatley.homelab.kubernerdes.com` | 10.10.12.249 (WiFi, via DHCP) | May be retired |
+
+Both names, plus 10.10.12.252, are in the RKE2 API cert (`rke2_tls_san`).
+
+### TLS: Let's Encrypt via Route53 DNS-01
+
+- **Issuers:** ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod` answer the DNS-01 challenge in the public Route53 zone `kubernerdes.com` (`Z03970223DJDS89C1XW4A`). They use IAM user `ciol-route53`. The key is in the vault (`vault_route53_*`), and Ansible stores it in Secret `cert-manager/route53-credentials`.
+- **Public resolvers for the self-check.** cert-manager runs with `dns01RecursiveNameservers=1.1.1.1:53,8.8.8.8:53` and `dns01RecursiveNameserversOnly=true`. The LAN DNS answers `homelab.kubernerdes.com` itself, so it never sees the public `_acme-challenge` TXT record, and without this cert-manager waits forever.
+- **The certificate.** `open-webui-le` covers `glados.homelab.kubernerdes.com` and is stored in Secret `open-webui-le-tls`. Open WebUI uses it via `global.tls.source=secret` + `ingress.existingSecret`. cert-manager renews it automatically.
+- **Testing the flow:** `ansible-playbook site.yml --tags open_webui -e open_webui_cert_issuer=letsencrypt-staging`. To go back to the chart's self-signed CA: `-e open_webui_cert_issuer=""`.
+- **Security note:** the Route53 key now sits in the cluster, so anyone with cluster-admin can read it. A narrower IAM policy (only `kubernerdes.com`, only `_acme-challenge.*` TXT records) would limit that.
 
 **kubectl from the workstation:** `KUBECONFIG=~/.kube/homelab-wheatley.kubeconfig kubectl get pods -n suse-ai` (written by the `rke2` role).
 
@@ -90,5 +106,4 @@ gemma:2b    1.9 GB    100% GPU     4096
 
 - Vector DB for RAG (Milvus or OpenSearch, guide 4.5/4.6)
 - SUSE Security (NeuVector, guide 3.5)
-- DNS name for `.252`, or a trusted cert
 

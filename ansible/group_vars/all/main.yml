@@ -1,6 +1,10 @@
 ---
 # ---- base ----
 hostname: wheatley        # after the Portal character
+domain: homelab.kubernerdes.com
+# DNS (managed outside this repo):
+#   glados.homelab.kubernerdes.com   -> 10.10.12.252 (wired, DHCP reservation; node IP, Open WebUI)
+#   wheatley.homelab.kubernerdes.com -> 10.10.12.249 (WiFi, via DHCP; may be retired)
 base_packages:
   - vim
   - curl
@@ -23,6 +27,7 @@ rke2_channel: stable        # or pin rke2_version
 rke2_version: ""
 
 # ---- suse_ai ----
+open_webui_host: "glados.{{ domain }}"   # the AI on wheatley is GLaDOS
 suse_ai_enabled: true       # RKE2 + GPU driver verified 2026-10-30
 
 # ---- registration (SCC direct) ----
@@ -46,6 +51,9 @@ appco_username: "{{ vault_appco_username | default('') }}"
 appco_token: "{{ vault_appco_token | default('') }}"
 # SUSE Registry (registry.suse.com) login for SUSE AI: user `regcode`, SUSE AI regcode
 suse_ai_regcode: "{{ vault_suse_ai_regcode | default('') }}"
+# Route53 creds for cert-manager DNS-01 (Let's Encrypt). Empty = skip ACME issuers.
+route53_access_key_id: "{{ vault_route53_access_key_id | default('') }}"
+route53_secret_access_key: "{{ vault_route53_secret_access_key | default('') }}"
 
 # ---- wifi (base role) ----
 wifi_networks:

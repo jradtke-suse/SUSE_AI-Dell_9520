@@ -34,6 +34,17 @@ suse_registry: registry.suse.com
 # Charts from SUSE Application Collection. Empty version = latest at install time.
 appco_chart_base: oci://dp.apps.rancher.io/charts
 cert_manager_chart_version: ""
+# DNS-01 self-check must use public resolvers: the LAN DNS (10.10.12.10) answers
+# homelab.kubernerdes.com itself and never sees the public _acme-challenge TXT.
+cert_manager_dns01_nameservers: "1.1.1.1:53,8.8.8.8:53"
+
+# ---- Let's Encrypt via Route53 DNS-01 ----
+acme_dns_zone: kubernerdes.com
+acme_route53_zone_id: Z03970223DJDS89C1XW4A
+acme_route53_region: us-east-1
+acme_servers:
+  letsencrypt-staging: https://acme-staging-v02.api.letsencrypt.org/directory
+  letsencrypt-prod: https://acme-v02.api.letsencrypt.org/directory
 
 # ---- Ollama (guide 4.7) ----
 ollama_chart_version: ""
@@ -47,5 +58,7 @@ ollama_pv_size: 30Gi
 
 # ---- Open WebUI (guide 4.8, standalone-Ollama variant) ----
 open_webui_chart_version: ""
-open_webui_host: wheatley.homelab.kubernerdes.com
+open_webui_host: "{{ ansible_fqdn }}"   # group_vars sets glados.<domain>
 open_webui_default_model: "gemma:2b"
+# ClusterIssuer for the Open WebUI cert. "" = chart's self-signed suse-private-ai CA.
+open_webui_cert_issuer: letsencrypt-prod

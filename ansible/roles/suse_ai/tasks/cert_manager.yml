@@ -14,5 +14,34 @@
       global:
         imagePullSecrets:
           - name: application-collection
+      dns01RecursiveNameservers: "{{ cert_manager_dns01_nameservers }}"
+      dns01RecursiveNameserversOnly: true
     wait: true
     wait_timeout: 10m
+
+- name: Let's Encrypt issuers (Route53 DNS-01)
+  when: route53_access_key_id | length > 0
+  block:
+    - name: Route53 credentials secret
+      ansible.builtin.shell: |
+        set -o pipefail
+        {{ suse_ai_kubectl }} create secret generic route53-credentials \
+          --from-literal=secret-access-key="$R53_SECRET" \
+          -n {{ cert_manager_namespace }} --dry-run=client -o yaml | {{ suse_ai_kubectl }} apply -f -
+      args:
+        executable: /bin/bash
+      environment:
+        KUBECONFIG: "{{ suse_ai_kubeconfig }}"
+        R53_SECRET: "{{ route53_secret_access_key }}"
+      register: r53_secret
+      changed_when: "'unchanged' not in r53_secret.stdout"
+      no_log: true
+
+    - name: ClusterIssuers
+      ansible.builtin.command:
+        argv: ["{{ suse_ai_kubectl }}", apply, -f, "-"]
+        stdin: "{{ lookup('template', 'acme-clusterissuers.yaml.j2') }}"
+      environment:
+        KUBECONFIG: "{{ suse_ai_kubeconfig }}"
+      register: acme_issuers
+      changed_when: "'configured' in acme_issuers.stdout or 'created' in acme_issuers.stdout"

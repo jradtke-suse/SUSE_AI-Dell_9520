@@ -1,4 +1,29 @@
 ---
+- name: Let's Encrypt certificate for Open WebUI
+  when: open_webui_cert_issuer | length > 0
+  block:
+    - name: Request certificate
+      ansible.builtin.command:
+        argv: ["{{ suse_ai_kubectl }}", apply, -f, "-"]
+        stdin: "{{ lookup('template', 'open-webui-certificate.yaml.j2') }}"
+      environment:
+        KUBECONFIG: "{{ suse_ai_kubeconfig }}"
+      register: owui_cert
+      changed_when: "'configured' in owui_cert.stdout or 'created' in owui_cert.stdout"
+
+    - name: Wait for certificate (DNS-01 takes a minute or two)
+      ansible.builtin.command: >-
+        {{ suse_ai_kubectl }} wait -n {{ suse_ai_namespace }} certificate/open-webui-le
+        --for=condition=Ready --timeout=30s
+      environment:
+        KUBECONFIG: "{{ suse_ai_kubeconfig }}"
+      register: owui_cert_wait
+      until: owui_cert_wait.rc == 0
+      retries: 20
+      delay: 15
+      changed_when: false
+      when: not ansible_check_mode
+
 # Guide 4.8, "Ollama installed separately" variant. No Milvus/pipelines yet
 # (Open WebUI falls back to its built-in vector store).
 - name: Install Open WebUI from Application Collection
@@ -14,7 +39,8 @@
         imagePullSecrets:
           - application-collection
         tls:
-          source: suse-private-ai     # self-signed CA via cert-manager
+          # secret = our Let's Encrypt cert; suse-private-ai = chart's self-signed CA
+          source: "{{ 'secret' if open_webui_cert_issuer | length > 0 else 'suse-private-ai' }}"
       ollamaUrls:
         - "http://ollama.{{ suse_ai_namespace }}.svc.cluster.local:11434"
       ollama:
@@ -30,6 +56,7 @@
         class: traefik                # RKE2 v1.36 default; guide examples assume nginx
         host: "{{ open_webui_host }}"
         tls: true
+        existingSecret: "{{ 'open-webui-le-tls' if open_webui_cert_issuer | length > 0 else '' }}"
       extraEnvVars:
         - {name: DEFAULT_MODELS, value: "{{ open_webui_default_model }}"}
         - {name: DEFAULT_USER_ROLE, value: user}
