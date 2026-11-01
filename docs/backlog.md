@@ -1,6 +1,6 @@
 # Backlog
 
-Paused 2026-11-01 with SUSE AI running (Ollama on GPU + Open WebUI at https://wheatley.homelab.kubernerdes.com).
+Paused 2026-11-01 with SUSE AI running (Ollama on GPU + Open WebUI at https://wheatley.homelab.kubernerdes.com). Resuming on another workstation: see the README section "Resuming on another workstation".
 
 ## Next up
 

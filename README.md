@@ -64,5 +64,24 @@ export ANSIBLE_VAULT_PASSWORD_FILE=~/.ansible/suse_ai_vault_pass
 ansible-playbook site.yml --tags registration,repos,bootloader   # then reboot
 ansible-playbook site.yml --tags base
 ansible-playbook site.yml --tags nvidia     # reboot when prompted, then verify with nvidia-smi
-ansible-playbook site.yml --tags rke2
+ansible-playbook site.yml --tags rke2       # also writes ~/.kube/homelab-wheatley.kubeconfig
+ansible-playbook site.yml --tags suse_ai    # GPU Operator, cert-manager, Ollama, Open WebUI
 ```
+
+## Resuming on another workstation
+
+The repo has everything except the **vault password**. Bring that over yourself; it isn't stored anywhere else.
+
+1. **Copy the vault password** from the old machine (`~/.ansible/suse_ai_vault_pass`) to the same path on the new one, mode 600. Use a password manager or `scp`, never git. Without it, `group_vars/all/vault.yml` can't be decrypted. You'd have to rebuild it from `vault.yml.example` (SCC + SUSE AI regcodes, AppCo token, WiFi PSK, Route53 key).
+   ```bash
+   mkdir -p ~/.ansible && chmod 700 ~/.ansible
+   # paste/copy the file, then:
+   chmod 600 ~/.ansible/suse_ai_vault_pass
+   ansible-vault view ansible/group_vars/all/vault.yml --vault-password-file ~/.ansible/suse_ai_vault_pass >/dev/null && echo vault OK
+   ```
+2. **Install the tools:** `ansible-core`, `kubectl`, and the collections with `cd ansible && ansible-galaxy collection install -r requirements.yml`.
+3. **SSH key:** `ssh-copy-id mansible@wheatley.homelab.kubernerdes.com` (or `@10.10.12.252`). Then `ansible all -m ping`.
+4. **Kubeconfig:** `ansible-playbook site.yml --tags rke2` rewrites `~/.kube/homelab-wheatley.kubeconfig`. A no-op run otherwise.
+5. **Name resolution:** on a network whose DNS doesn't know `homelab.kubernerdes.com`, add `/etc/resolver/homelab.kubernerdes.com` with `nameserver 10.10.12.10` (macOS). The inventory uses the IP, so Ansible works either way.
+
+Current state and open items: [docs/backlog.md](docs/backlog.md). Project context, rules and gotchas: [docs/working-notes.md](docs/working-notes.md).
