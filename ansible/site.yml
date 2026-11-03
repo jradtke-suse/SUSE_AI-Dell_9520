@@ -10,13 +10,35 @@
       no_log: true
       tags: [always]
 
-    - name: Read ~/.config/SUSE/creds on the host
-      # Sourced in a clean shell, so the file can use plain shell syntax
+    - name: Read ~/.config/SUSE/creds and the AWS credentials file on the host
+      # The creds file is sourced, so it can use plain shell syntax.
+      # Route53 keys: AWS_* in the creds file, else the AWS shared credentials file
+      # ($AWS_SHARED_CREDENTIALS_FILE, ~/.config/aws/creds or ~/.aws/credentials;
+      # profile $AWS_PROFILE or default).
       ansible.builtin.shell: |
         f="$HOME/.config/SUSE/creds"
-        [ -r "$f" ] || { echo '{}'; exit 0; }
-        env -i HOME="$HOME" bash -c 'set -a; . "$0" >/dev/null 2>&1; set +a
-          python3 -c "import json,os; print(json.dumps({k: v for k, v in os.environ.items() if k.isupper() and k not in (\"HOME\",\"PWD\",\"SHLVL\",\"_\")}))"' "$f"
+        set -a
+        [ -r "$f" ] && . "$f" >/dev/null 2>&1
+        set +a
+        python3 - <<'PY'
+        import configparser, json, os
+        keys = ["REGCODE", "REGEMAIL", "REGCODE_AI", "APPCO_USERNAME", "APPCO_TOKEN",
+                "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"]
+        creds = {k: os.environ[k] for k in keys if os.environ.get(k)}
+        if "AWS_ACCESS_KEY_ID" not in creds:
+            home = os.path.expanduser("~")
+            paths = [os.environ.get("AWS_SHARED_CREDENTIALS_FILE", ""),
+                     f"{home}/.config/aws/creds", f"{home}/.aws/credentials"]
+            path = next((p for p in paths if p and os.path.isfile(p)), None)
+            if path:
+                ini = configparser.ConfigParser()
+                ini.read(path)
+                sec = ini[os.environ.get("AWS_PROFILE", "default")] if ini.has_section(os.environ.get("AWS_PROFILE", "default")) else {}
+                if sec.get("aws_access_key_id") and sec.get("aws_secret_access_key"):
+                    creds["AWS_ACCESS_KEY_ID"] = sec["aws_access_key_id"]
+                    creds["AWS_SECRET_ACCESS_KEY"] = sec["aws_secret_access_key"]
+        print(json.dumps(creds))
+        PY
       args:
         executable: /bin/bash
       become: false

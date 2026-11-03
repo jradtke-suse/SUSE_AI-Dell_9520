@@ -76,6 +76,8 @@ AWS_ACCESS_KEY_ID=...       # optional: Route53 DNS-01 for a Let's Encrypt cert.
 AWS_SECRET_ACCESS_KEY=...   # Without these, Open WebUI uses a self-signed cert.
 ```
 
+If the creds file has no `AWS_*` keys, the Route53 keys come from the AWS shared credentials file on the host: `$AWS_SHARED_CREDENTIALS_FILE`, `~/.config/aws/creds` or `~/.aws/credentials` (profile `$AWS_PROFILE` or `default`). Keep both files mode 600.
+
 ## Quick start (from your workstation)
 
 ```bash

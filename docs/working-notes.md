@@ -1,15 +1,22 @@
-# Working notes: SUSE AI on Dell XPS 15 9520 ("wheatley")
+# Working notes: SUSE AI on SLES 16 ("jarvis", "wheatley")
 
 Project context, rules and gotchas for whoever picks this up next (including Claude Code sessions). Read [README.md](../README.md) (status table, quick start) and [docs/backlog.md](backlog.md) (open items) first.
 
 ## What this is
 
-James Radtke (SUSE) documents and automates **SUSE AI 1.0** on a Dell XPS 15 9520 (RTX 3050 Ti, 4 GB) running **SLES 16.0**, "the SUSE way" (SUSE-signed open NVIDIA KMP, RKE2 from Rancher Prime, charts from SUSE Application Collection).
+James Radtke (SUSE) documents and automates **SUSE AI 1.0** on single SLES 16.0 + NVIDIA nodes. **jarvis** (custom desktop, RTX 4060 Ti 16 GB) is the long-running node and the **primary host for development**; **wheatley** (Dell XPS 15 9520, RTX 3050 Ti 4 GB) was the first build. Both run **SLES 16.0**, "the SUSE way" (SUSE-signed open NVIDIA KMP, RKE2 from Rancher Prime, charts from SUSE Application Collection).
 - Reference guide: https://documentation.suse.com/suse-ai/1.0/html/AI-deployment/ (written for SLES 15 SP6). Follow it loosely and record **every** SLES 16 / version difference in [docs/sles16-deltas.md](sles16-deltas.md) and the relevant doc.
-- Ansible runs **from the workstation** against `mansible@10.10.12.252` (`ansible/inventory/hosts.yml`). Roles in `ansible/site.yml` order: sudo, registration, repos, bootloader, base, nvidia, rke2, suse_ai. Each role has its own tag; sub-tags include wifi, gnome_power, helm, storage, gpu_operator, registry, cert_manager, ollama, open_webui.
+- Ansible runs **from the workstation** (`ansible/inventory/hosts.yml`): `jradtke@10.10.12.250` (jarvis), `mansible@10.10.12.252` (wheatley). **Always `--limit <host>`.** Per-host settings in `ansible/host_vars/`. Secrets: `ansible/vault/<host>.yml` if present (wheatley), else read from the host: `~/.config/SUSE/creds` (shell KEY=value) and the AWS shared credentials file `~/.config/aws/creds` (jarvis). When inspecting creds files, print key names only. Roles in `ansible/site.yml` order: sudo, registration, repos, bootloader, base, nvidia, rke2, suse_ai. Each role has its own tag; sub-tags include wifi, gnome_power, helm, storage, gpu_operator, registry, cert_manager, ollama, open_webui.
 - Docs live in `docs/00-...05-*.md`, plus troubleshooting, deltas, backlog.
 
-## Current state (2026-11-01)
+## Current state: jarvis (2026-11-03)
+
+- SLES 16.0, registered to SCC (internal subscription) with Package Hub. Windows on `sda` (os-prober). Secure Boot off. NVIDIA drives the display (no iGPU), so `nvidia-gl-G06` is required for GNOME.
+- Same stack as wheatley below: NVIDIA 580.178.04 (locked), RKE2 v1.36.5+rke2r1, GPU Operator v26.7.2, cert-manager, Ollama with **llama3.1:8b** (default, 100% GPU), llama3.2:3b, gemma:2b.
+- Open WebUI at **https://jarvis.homelab.kubernerdes.com**, Let's Encrypt via Route53 DNS-01 (IAM user `ciol-route53`, key in `~/.config/aws/creds` on jarvis).
+- Workstation kubeconfig: `~/.kube/homelab-jarvis.kubeconfig`.
+
+## Current state: wheatley (2026-11-01)
 
 - SLES 16.0, kernel 6.12.0-160000.40. Registered to SCC with Package Hub (repo name `Backports-16.0`).
 - NVIDIA: SUSE-signed open KMP **580.178.04**. Userspace from NVIDIA's sles15 CUDA repo, pinned **and zypper-locked**. NVIDIA DKMS driver + dkms are locked out.
