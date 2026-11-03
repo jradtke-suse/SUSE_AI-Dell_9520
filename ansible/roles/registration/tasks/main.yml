@@ -19,8 +19,8 @@
   ansible.builtin.assert:
     that: scc_regcode | length > 0
     fail_msg: >-
-      Not registered and no regcode found. Create group_vars/all/vault.yml
-      (see vault.yml.example) and run with --ask-vault-pass.
+      Not registered and no regcode found. Set REGCODE in ~/.config/SUSE/creds
+      on the host, or vault_scc_regcode in vault/<host>.yml (see vault/example.yml).
   when: not scc_base_registered
 
 - name: Register base product with SCC

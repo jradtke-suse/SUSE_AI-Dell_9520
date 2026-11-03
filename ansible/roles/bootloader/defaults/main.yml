@@ -15,4 +15,4 @@ bootloader_cmdline_remove:
 #   none      : neither
 bootloader_windows_method: os-prober
 # For chainload. Find with: blkid -t PARTLABEL="EFI system partition"
-bootloader_windows_esp_uuid: "5ACF-A682"   # wheatley: nvme1n1p1
+bootloader_windows_esp_uuid: ""   # set per host in host_vars

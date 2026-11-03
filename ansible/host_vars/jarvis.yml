@@ -1,0 +1,17 @@
+---
+# Custom desktop (CCL), RTX 4060 Ti 16 GB (Ada). NVIDIA drives the display (no iGPU).
+# Windows on sda: os-prober picks it up (bootloader_windows_method default).
+# Secrets: ~/.config/SUSE/creds on jarvis (no vault file).
+
+gnome_no_sleep_on_ac_users:
+  - jradtke
+
+# 16 GB VRAM: the guide's llama3.1 8B fits, with room for a second model.
+ollama_models_pull:
+  - "llama3.1:8b"
+  - "llama3.2:3b"
+  - "gemma:2b"
+ollama_models_run:
+  - "llama3.1:8b"
+open_webui_default_model: "llama3.1:8b"
+ollama_pv_size: 60Gi

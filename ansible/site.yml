@@ -1,6 +1,37 @@
 ---
-- name: SUSE AI on Dell XPS 15 9520
+- name: SUSE AI on a single SLES 16 + NVIDIA node
   hosts: all
+  pre_tasks:
+    # Secrets, see group_vars/all/main.yml. Tagged `always` so every --tags run has them.
+    - name: Load vault/<host>.yml if present
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/vault/{{ inventory_hostname }}.yml"
+      when: (playbook_dir ~ '/vault/' ~ inventory_hostname ~ '.yml') is file
+      no_log: true
+      tags: [always]
+
+    - name: Read ~/.config/SUSE/creds on the host
+      # Sourced in a clean shell, so the file can use plain shell syntax
+      ansible.builtin.shell: |
+        f="$HOME/.config/SUSE/creds"
+        [ -r "$f" ] || { echo '{}'; exit 0; }
+        env -i HOME="$HOME" bash -c 'set -a; . "$0" >/dev/null 2>&1; set +a
+          python3 -c "import json,os; print(json.dumps({k: v for k, v in os.environ.items() if k.isupper() and k not in (\"HOME\",\"PWD\",\"SHLVL\",\"_\")}))"' "$f"
+      args:
+        executable: /bin/bash
+      become: false
+      register: suse_creds_raw
+      changed_when: false
+      check_mode: false
+      no_log: true
+      tags: [always]
+
+    - name: Parse creds
+      ansible.builtin.set_fact:
+        suse_creds: "{{ suse_creds_raw.stdout | from_json }}"
+      no_log: true
+      tags: [always]
+
   roles:
     - role: sudo
       tags: [sudo]

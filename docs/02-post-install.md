@@ -42,15 +42,15 @@ Later runs need no password.
 
 ### 2b. Vault (SCC regcodes)
 
-Regcodes are kept in `ansible/group_vars/all/vault.yml`, which is encrypted with Ansible Vault and committed to the repo. The vault password is **not** in the repo. It lives at `~/.ansible/suse_ai_vault_pass` (mode 600).
+Secrets for a host come from `ansible/vault/<host>.yml` or from `~/.config/SUSE/creds` on the host (see the README's "Secrets" section). The vault file is encrypted with Ansible Vault and committed to the repo. The vault password is **not** in the repo. It lives at `~/.ansible/suse_ai_vault_pass` (mode 600).
 
 ```bash
 cd ansible
-ansible-vault create group_vars/all/vault.yml --vault-password-file ~/.ansible/suse_ai_vault_pass   # first time, see vault.yml.example
-ansible-vault edit   group_vars/all/vault.yml --vault-password-file ~/.ansible/suse_ai_vault_pass
+ansible-vault create vault/wheatley.yml --vault-password-file ~/.ansible/suse_ai_vault_pass   # first time, see vault/example.yml
+ansible-vault edit   vault/wheatley.yml --vault-password-file ~/.ansible/suse_ai_vault_pass
 ```
 
-Every playbook run needs `--vault-password-file ~/.ansible/suse_ai_vault_pass` (or `--ask-vault-pass`).
+Every playbook run for a host with a vault file needs `--vault-password-file ~/.ansible/suse_ai_vault_pass` (or `--ask-vault-pass`).
 
 ### 2c. `registration` role (SCC direct)
 

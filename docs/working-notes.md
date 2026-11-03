@@ -22,10 +22,10 @@ James Radtke (SUSE) documents and automates **SUSE AI 1.0** on a Dell XPS 15 952
 ## Rules the user has set
 
 - **Commit and push only when the user approves, each time.** End commit messages with the Co-Authored-By line from the session's attribution guidance.
-- **Secrets never go in plaintext in the repo.** They live in the encrypted `ansible/group_vars/all/vault.yml` (password file `~/.ansible/suse_ai_vault_pass`, outside the repo; never commit it). Use `no_log: true` on tasks that handle secrets. Scratch plaintext only in the session scratchpad with `umask 077`, deleted right after.
+- **Secrets never go in plaintext in the repo.** They live in the encrypted `ansible/vault/wheatley.yml` (password file `~/.ansible/suse_ai_vault_pass`, outside the repo; never commit it). Use `no_log: true` on tasks that handle secrets. Scratch plaintext only in the session scratchpad with `umask 077`, deleted right after.
 - **Before every commit, scan for secrets.** This checks the working tree for every value stored in the vault, plus AWS key IDs, without writing the secrets anywhere (run from the repo root):
   ```bash
-  grep -rnF --exclude-dir=.git -f <(ansible-vault view ansible/group_vars/all/vault.yml \
+  grep -rnF --exclude-dir=.git -f <(ansible-vault view ansible/vault/wheatley.yml \
       --vault-password-file ~/.ansible/suse_ai_vault_pass | sed -nE 's/^vault_[a-z0-9_]+: "(.+)"$/\1/p') . \
     && echo "SECRET FOUND" || echo "clean"
   grep -rnE "AKIA[A-Z0-9]{12,}" . --exclude-dir=.git | grep -v AKIAXXXX

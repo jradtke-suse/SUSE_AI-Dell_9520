@@ -1,11 +1,13 @@
 ---
+# Shared settings. Per-host values live in host_vars/<host>.yml.
+
 # ---- base ----
-hostname: wheatley        # after the Portal character
+hostname: "{{ inventory_hostname }}"
 domain: homelab.kubernerdes.com
 # DNS (managed outside this repo):
-#   wheatley.homelab.kubernerdes.com      -> 10.10.12.252 (wired, DHCP reservation; node IP, Open WebUI)
+#   wheatley.homelab.kubernerdes.com      -> 10.10.12.252
 #   wheatley-wifi.homelab.kubernerdes.com -> 10.10.12.249 (WiFi)
-# Off the home network the host gets whatever DHCP hands out; nothing depends on it.
+#   jarvis.homelab.kubernerdes.com        -> 10.10.12.250
 base_packages:
   - vim
   - curl
@@ -29,13 +31,20 @@ rke2_version: ""
 
 # ---- suse_ai ----
 open_webui_host: "{{ hostname }}.{{ domain }}"
-suse_ai_enabled: true       # RKE2 + GPU driver verified 2026-10-30
+suse_ai_enabled: true
+
+# ---- secrets ----
+# Each value comes from the first source that has it:
+#   1. vault/<host>.yml (ansible-vault encrypted, loaded only if the file exists)
+#   2. ~/.config/SUSE/creds on the target host (shell KEY=value, read by site.yml)
+# Creds-file keys: REGCODE, REGEMAIL, REGCODE_AI, APPCO_USERNAME, APPCO_TOKEN,
+#                  AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+_creds: "{{ suse_creds | default({}) }}"
 
 # ---- registration (SCC direct) ----
-# Secrets live in group_vars/all/vault.yml (ansible-vault encrypted).
-# See group_vars/all/vault.yml.example
-scc_regcode: "{{ vault_scc_regcode | default('') }}"
-scc_email: "{{ vault_scc_email | default('') }}"
+# Only needed if the host isn't registered yet.
+scc_regcode: "{{ vault_scc_regcode | default(_creds.REGCODE | default('')) }}"
+scc_email: "{{ vault_scc_email | default(_creds.REGEMAIL | default('')) }}"
 # Extensions/modules to activate, as identifier/version/arch.
 # Run `sudo SUSEConnect --list-extensions` after registering to see what's available.
 scc_extensions:
@@ -48,23 +57,20 @@ repos_update_system: true          # zypper patch after repos are in place
 
 # ---- SUSE Application Collection (SUSE AI components) ----
 appco_registry: dp.apps.rancher.io
-appco_username: "{{ vault_appco_username | default('') }}"
-appco_token: "{{ vault_appco_token | default('') }}"
+appco_username: "{{ vault_appco_username | default(_creds.APPCO_USERNAME | default('')) }}"
+appco_token: "{{ vault_appco_token | default(_creds.APPCO_TOKEN | default('')) }}"
 # SUSE Registry (registry.suse.com) login for SUSE AI: user `regcode`, SUSE AI regcode
-suse_ai_regcode: "{{ vault_suse_ai_regcode | default('') }}"
-# Route53 creds for cert-manager DNS-01 (Let's Encrypt). Empty = skip ACME issuers.
-route53_access_key_id: "{{ vault_route53_access_key_id | default('') }}"
-route53_secret_access_key: "{{ vault_route53_secret_access_key | default('') }}"
+suse_ai_regcode: "{{ vault_suse_ai_regcode | default(_creds.REGCODE_AI | default('')) }}"
+# Route53 creds for cert-manager DNS-01 (Let's Encrypt).
+# Empty = no ACME issuers; Open WebUI uses the chart's self-signed CA.
+route53_access_key_id: "{{ vault_route53_access_key_id | default(_creds.AWS_ACCESS_KEY_ID | default('')) }}"
+route53_secret_access_key: "{{ vault_route53_secret_access_key | default(_creds.AWS_SECRET_ACCESS_KEY | default('')) }}"
 
 # ---- wifi (base role) ----
-wifi_networks:
-  - ssid: KUBERNERDES
-    psk: "{{ vault_wifi_kubernerdes_psk }}"
-
-# ---- GNOME power (base role) ----
-# Don't suspend when idle on AC power, for these users
+wifi_networks: []           # [{ssid: foo, psk: "{{ vault_foo_psk }}"}]
 # Name WiFi sends to DHCP, so it never claims the host name (that's the wired address)
 wifi_dhcp_hostname: "{{ hostname }}-wifi"
 
-gnome_no_sleep_on_ac_users:
-  - mansible
+# ---- GNOME power (base role) ----
+# Don't suspend when idle on AC power, for these users
+gnome_no_sleep_on_ac_users: []

@@ -11,7 +11,7 @@
       - appco_username | length > 0
       - appco_token | length > 0
       - suse_ai_regcode | length > 0
-    fail_msg: "Set vault_appco_username, vault_appco_token and vault_suse_ai_regcode in group_vars/all/vault.yml"
+    fail_msg: "Missing AppCo or SUSE AI creds. Set APPCO_USERNAME, APPCO_TOKEN and REGCODE_AI in ~/.config/SUSE/creds on the host, or the vault_* vars in vault/<host>.yml"
   no_log: true
 
 - name: Create namespaces

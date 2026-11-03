@@ -1,0 +1,21 @@
+---
+# Dell XPS 15 9520, RTX 3050 Ti Laptop (4 GB). Hybrid graphics: Intel drives the display.
+# Secrets: vault/wheatley.yml
+
+wifi_networks:
+  - ssid: KUBERNERDES
+    psk: "{{ vault_wifi_kubernerdes_psk }}"
+
+gnome_no_sleep_on_ac_users:
+  - mansible
+
+# Windows on the other NVMe (only used with bootloader_windows_method: chainload)
+bootloader_windows_esp_uuid: "5ACF-A682"   # nvme1n1p1
+
+# 4 GB VRAM: keep to small models. The guide's llama3.1 (8B, ~4.9 GB) doesn't fit.
+ollama_models_pull:
+  - "gemma:2b"
+  - "llama3.2:3b"
+ollama_models_run:          # preloaded into VRAM; only one fits at a time
+  - "gemma:2b"
+open_webui_default_model: "gemma:2b"

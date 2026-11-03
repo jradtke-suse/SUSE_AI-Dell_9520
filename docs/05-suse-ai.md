@@ -2,10 +2,10 @@
 
 ## Prerequisites
 
-- [ ] SUSE Application Collection account + access token (`dp.apps.rancher.io`), stored in the vault:
+- [ ] SUSE Application Collection account + access token (`dp.apps.rancher.io`), stored in the vault (or `APPCO_USERNAME`/`APPCO_TOKEN`/`REGCODE_AI` in `~/.config/SUSE/creds` on the host):
   ```bash
   cd ansible
-  ansible-vault edit group_vars/all/vault.yml --vault-password-file ~/.ansible/suse_ai_vault_pass
+  ansible-vault edit vault/wheatley.yml --vault-password-file ~/.ansible/suse_ai_vault_pass
   # vault_appco_username, vault_appco_token, vault_suse_ai_regcode
   ```
 - [ ] RKE2 running ([04](04-kubernetes-rke2.md))
