@@ -14,6 +14,7 @@ James Radtke (SUSE) documents and automates **SUSE AI 1.0** on single SLES 16.0 
 - SLES 16.0, registered to SCC (internal subscription) with Package Hub. Windows on `sda` (os-prober). Secure Boot off. NVIDIA drives the display (no iGPU), so `nvidia-gl-G06` is required for GNOME.
 - Same stack as wheatley below: NVIDIA 580.178.04 (locked), RKE2 v1.36.5+rke2r1, GPU Operator v26.7.2, cert-manager, Ollama with **llama3.1:8b** (default, 100% GPU), llama3.2:3b, gemma:2b.
 - Open WebUI at **https://jarvis.homelab.kubernerdes.com**, Let's Encrypt via Route53 DNS-01 (IAM user `ciol-route53`, key in `~/.config/aws/creds` on jarvis).
+- Ollama API exposed at **https://ollama.jarvis.homelab.kubernerdes.com** (Traefik ingress, Let's Encrypt; `ollama_ingress_host`) for LiteLLM on nuc-00. No auth on Ollama: LAN-reachable. DNS: Pi-hole wildcard `*.jarvis.homelab.kubernerdes.com` -> 10.10.12.250.
 - Workstation kubeconfig: `~/.kube/homelab-jarvis.kubeconfig`.
 
 ## Current state: wheatley (2026-11-01)

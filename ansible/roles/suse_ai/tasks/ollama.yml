@@ -1,5 +1,30 @@
 ---
 # Guide 4.7, standalone Ollama on the GPU
+- name: Let's Encrypt certificate for the Ollama ingress
+  when: ollama_ingress_host | length > 0 and ollama_cert_issuer | length > 0
+  block:
+    - name: Request certificate
+      ansible.builtin.command:
+        argv: ["{{ suse_ai_kubectl }}", apply, -f, "-"]
+        stdin: "{{ lookup('template', 'ollama-certificate.yaml.j2') }}"
+      environment:
+        KUBECONFIG: "{{ suse_ai_kubeconfig }}"
+      register: ollama_cert
+      changed_when: "'configured' in ollama_cert.stdout or 'created' in ollama_cert.stdout"
+
+    - name: Wait for certificate (DNS-01 takes a minute or two)
+      ansible.builtin.command: >-
+        {{ suse_ai_kubectl }} wait -n {{ suse_ai_namespace }} certificate/ollama-le
+        --for=condition=Ready --timeout=30s
+      environment:
+        KUBECONFIG: "{{ suse_ai_kubeconfig }}"
+      register: ollama_cert_wait
+      until: ollama_cert_wait.rc == 0
+      retries: 20
+      delay: 15
+      changed_when: false
+      when: not ansible_check_mode
+
 - name: Install Ollama from Application Collection
   kubernetes.core.helm:
     name: ollama
@@ -13,7 +38,13 @@
         imagePullSecrets:
           - application-collection
       ingress:
-        enabled: false
+        enabled: "{{ ollama_ingress_host | length > 0 }}"
+        className: traefik
+        hosts:
+          - host: "{{ ollama_ingress_host or 'ollama.local' }}"
+            paths:
+              - {path: /, pathType: Prefix}
+        tls: "{{ [{'secretName': 'ollama-le-tls', 'hosts': [ollama_ingress_host]}] if (ollama_ingress_host | length > 0 and ollama_cert_issuer | length > 0) else [] }}"
       ollama:
         models:
           pull: "{{ ollama_models_pull }}"

@@ -15,3 +15,5 @@ ollama_models_run:
   - "llama3.1:8b"
 open_webui_default_model: "llama3.1:8b"
 ollama_pv_size: 60Gi
+# API for LiteLLM on nuc-00. DNS: *.jarvis.homelab.kubernerdes.com -> 10.10.12.250
+ollama_ingress_host: "ollama.{{ hostname }}.{{ domain }}"

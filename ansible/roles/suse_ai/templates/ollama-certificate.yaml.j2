@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ollama-le
+  namespace: {{ suse_ai_namespace }}
+spec:
+  secretName: ollama-le-tls
+  dnsNames:
+    - {{ ollama_ingress_host }}
+  issuerRef:
+    kind: ClusterIssuer
+    name: {{ ollama_cert_issuer }}

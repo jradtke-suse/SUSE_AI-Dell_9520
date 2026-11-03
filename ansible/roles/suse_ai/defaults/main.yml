@@ -55,6 +55,11 @@ ollama_models_pull:
 ollama_models_run:          # preloaded into VRAM; only one fits at a time
   - "gemma:2b"
 ollama_pv_size: 30Gi
+# Expose the Ollama API outside the cluster via Traefik (e.g. for LiteLLM).
+# "" = in-cluster only. Ollama has no auth: anyone who can reach this name can use it.
+ollama_ingress_host: ""
+# Cert for the ingress. "" = Traefik's default (self-signed) cert.
+ollama_cert_issuer: "{{ open_webui_cert_issuer }}"
 
 # ---- Open WebUI (guide 4.8, standalone-Ollama variant) ----
 open_webui_chart_version: ""
