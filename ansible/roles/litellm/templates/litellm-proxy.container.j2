@@ -1,0 +1,27 @@
+# Managed by Ansible (litellm role)
+[Unit]
+Description=HTTPS for LiteLLM (Traefik, Let's Encrypt via Route53 DNS-01)
+Wants=litellm.service
+After=litellm.service network-online.target
+
+[Container]
+ContainerName=litellm-proxy
+Image={{ litellm_proxy_image }}
+Pull=never
+Network=litellm.network
+PublishPort=443:443
+EnvironmentFile={{ litellm_dir }}/route53.env
+Volume=litellm-proxy.volume:/data:Z
+Volume={{ litellm_dir }}/traefik-dynamic.yaml:/etc/traefik/dynamic.yaml:ro,Z
+Exec=--entrypoints.websecure.address=:443 \
+  --providers.file.filename=/etc/traefik/dynamic.yaml --providers.file.watch=true \
+  --certificatesresolvers.le.acme.storage=/data/acme.json \
+  --certificatesresolvers.le.acme.dnschallenge.provider=route53 \
+  --certificatesresolvers.le.acme.dnschallenge.resolvers={{ litellm_acme_resolvers }} \
+  --log.level=INFO
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

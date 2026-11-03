@@ -27,7 +27,7 @@
 
 - name: Pull images
   ansible.builtin.command: podman pull --authfile {{ litellm_authfile }} {{ item }}
-  loop: ["{{ litellm_image }}", "{{ litellm_pg_image }}"]
+  loop: "{{ [litellm_image, litellm_pg_image] + ([litellm_proxy_image] if litellm_tls | bool else []) }}"
   register: litellm_pull
   changed_when: false
 
@@ -61,6 +61,26 @@
     mode: "0644"
   notify: restart litellm
 
+- name: Route53 creds for Traefik
+  ansible.builtin.copy:
+    dest: "{{ litellm_dir }}/route53.env"
+    content: |
+      AWS_ACCESS_KEY_ID={{ route53_access_key_id }}
+      AWS_SECRET_ACCESS_KEY={{ route53_secret_access_key }}
+      AWS_REGION={{ acme_route53_region }}
+      AWS_HOSTED_ZONE_ID={{ acme_route53_zone_id }}
+    mode: "0600"
+  no_log: true
+  when: litellm_tls | bool
+  notify: restart litellm-proxy
+
+- name: Traefik routes
+  ansible.builtin.template:
+    src: traefik-dynamic.yaml.j2
+    dest: "{{ litellm_dir }}/traefik-dynamic.yaml"
+    mode: "0644"
+  when: litellm_tls | bool
+
 - name: Quadlet units
   ansible.builtin.template:
     src: "{{ item }}.j2"
@@ -74,16 +94,28 @@
   register: litellm_quadlets
   notify: restart litellm
 
+- name: Quadlet units (HTTPS proxy)
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/containers/systemd/{{ item }}"
+    mode: "0644"
+  loop:
+    - litellm-proxy.volume
+    - litellm-proxy.container
+  register: litellm_proxy_quadlets
+  notify: restart litellm-proxy
+  when: litellm_tls | bool
+
 - name: Reload systemd (generates services from quadlets)
   ansible.builtin.systemd_service:
     daemon_reload: true
-  when: litellm_quadlets is changed
+  when: litellm_quadlets is changed or litellm_proxy_quadlets is changed
 
 - name: Start PostgreSQL and LiteLLM
   ansible.builtin.systemd_service:
     name: "{{ item }}"
     state: started
-  loop: [litellm-db, litellm]
+  loop: "{{ ['litellm-db', 'litellm'] + (['litellm-proxy'] if litellm_tls | bool else []) }}"
 
 - name: Restart now if config changed
   ansible.builtin.meta: flush_handlers
@@ -95,3 +127,14 @@
   until: litellm_health.status == 200
   retries: 30
   delay: 10
+
+- name: Wait for HTTPS (first cert via DNS-01 takes a minute or two)
+  ansible.builtin.uri:
+    url: "https://{{ litellm_tls_host }}/health/liveliness"
+  delegate_to: localhost
+  become: false
+  register: litellm_https
+  until: litellm_https.status == 200
+  retries: 30
+  delay: 10
+  when: litellm_tls | bool and not ansible_check_mode

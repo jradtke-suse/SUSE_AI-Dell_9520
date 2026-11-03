@@ -5,6 +5,15 @@ litellm_image: registry.suse.com/ai/containers/litellm:v1.106.6
 litellm_pg_image: dp.apps.rancher.io/containers/postgresql:17
 
 litellm_port: 4000
+
+# HTTPS: Traefik (same hardened image RKE2 uses) on 443 with a Let's Encrypt cert
+# via Route53 DNS-01. Enabled when Route53 creds are found (see group_vars/all).
+# Port 4000 is then published on 127.0.0.1 only.
+litellm_tls_host: "{{ inventory_hostname }}.{{ domain }}"
+litellm_tls: "{{ route53_access_key_id | length > 0 }}"
+litellm_proxy_image: registry.rancher.com/rancher/hardened-traefik:v3.7.16-build20261028
+# Public resolvers for the DNS-01 self-check: the Pi-hole answers homelab.* itself
+litellm_acme_resolvers: "1.1.1.1:53,8.8.8.8:53"
 litellm_dir: /etc/litellm
 # Registry logins live here (root, 0600). Podman's default is under /run, which is
 # lost on reboot.

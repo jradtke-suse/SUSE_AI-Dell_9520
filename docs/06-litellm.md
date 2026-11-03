@@ -9,7 +9,8 @@ The SUSE AI 1.0 guide (§4.13) installs LiteLLM on Kubernetes with a Helm chart.
 | VM | `litellm` on nuc-00 (KVM), 2 vCPU, 4 GB RAM, 32 GB, UEFI + Secure Boot |
 | Address | `litellm.homelab.kubernerdes.com` = 10.10.12.13 (static), MAC `52:54:00:a3:cc:a2` |
 | OS | SL Micro 6.2 (`/etc/os-release` says `NAME="SLES" VARIANT="Micro" VERSION="16.0"`, it's the same code base) |
-| LiteLLM | `registry.suse.com/ai/containers/litellm:v1.106.6`, port 4000 (HTTP) |
+| LiteLLM | `registry.suse.com/ai/containers/litellm:v1.106.6`, https://litellm.homelab.kubernerdes.com (port 4000 on 127.0.0.1 only) |
+| HTTPS | Traefik `registry.rancher.com/rancher/hardened-traefik:v3.7.16` (same image as RKE2) on 443, Let's Encrypt via Route53 DNS-01, auto-renewed |
 | Database | `dp.apps.rancher.io/containers/postgresql:17`, volume `litellm-db` |
 | Backend | Ollama on jarvis: https://ollama.jarvis.homelab.kubernerdes.com |
 
@@ -63,6 +64,8 @@ APPCO_TOKEN=...
 REGCODE_AI=...         # SUSE AI regcode: registry.suse.com (LiteLLM image)
 ```
 
+For HTTPS: `~/.config/aws/creds` (AWS shared credentials format, `[default]` profile, mode 600) with a key that can create `_acme-challenge` TXT records in `kubernerdes.com`. Without it, LiteLLM stays on plain HTTP port 4000.
+
 **LiteLLM is not in Application Collection** for this account (no image, no chart, checked 2026-11-03). It's in the SUSE AI registry: `registry.suse.com/ai/containers/litellm`.
 
 ## 3. Deploy
@@ -76,7 +79,8 @@ The role:
 - logs in to both registries with a persistent authfile (`/etc/litellm/auth.json`; Podman's default is under `/run`, lost on reboot) and pulls the images
 - generates the DB password and the LiteLLM **master key** once, into `/etc/litellm/db.env` and `/etc/litellm/litellm.env` (root, 0600). They never leave the VM.
 - writes `/etc/litellm/config.yaml` (models from `litellm_models`) and the Quadlet units in `/etc/containers/systemd/` (`litellm.network`, `litellm-db.volume`, `litellm-db.container`, `litellm.container`)
-- starts `litellm-db` and `litellm` and waits for `/health/liveliness`
+- with Route53 creds: writes `/etc/litellm/route53.env` (0600) and `/etc/litellm/traefik-dynamic.yaml`, adds the `litellm-proxy` Traefik container on 443 (cert stored in volume `litellm-proxy`), and publishes 4000 on 127.0.0.1 only
+- starts `litellm-db`, `litellm` (and `litellm-proxy`), waits for `/health/liveliness` and, with HTTPS, for a verified `https://litellm.homelab.kubernerdes.com`
 
 ## 4. Use it
 
@@ -84,22 +88,22 @@ The role:
 # Master key (admin). Use it to create per-app keys; don't hand it out.
 ssh 10.10.12.13 sudo grep LITELLM_MASTER_KEY /etc/litellm/litellm.env
 
-curl http://litellm.homelab.kubernerdes.com:4000/v1/chat/completions \
+curl https://litellm.homelab.kubernerdes.com/v1/chat/completions \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"model":"llama3.1:8b","messages":[{"role":"user","content":"hello"}]}'
 ```
 
-Admin UI: http://litellm.homelab.kubernerdes.com:4000/ui (user `admin`, password = master key).
+Admin UI: https://litellm.homelab.kubernerdes.com/ui (user `admin`, password = master key).
 
 Models: `llama3.1:8b`, `llama3.2:3b`, `gemma:2b` (all on jarvis). Change `litellm_models` in `roles/litellm/defaults/main.yml` (or `host_vars/litellm.yml`) and rerun.
 
 ## Gotchas
 
 - **Never restart LiteLLM during its first start.** It runs ~200 database migrations on first boot. Killing it mid-way leaves the DB in a failed state (Prisma `P3009`, "migration ... failed"), and LiteLLM refuses to start. The role only restarts LiteLLM if it was already running, and the container gets 120 s to stop. Recovery on a fresh install: `systemctl stop litellm litellm-db; podman volume rm litellm-db`, rerun the playbook.
+- DNS-01 self-check uses public resolvers (1.1.1.1, 8.8.8.8): the Pi-hole answers `homelab.kubernerdes.com` itself and never sees the public `_acme-challenge` TXT record. Same reason as cert-manager on jarvis.
 - Updates: `transactional-update` runs on a timer (`transactional-update.timer`). Containers keep running across OS updates; a reboot restarts them.
 
 ## Not done yet
 
-- HTTPS in front of LiteLLM (port 4000 is plain HTTP on the LAN)
 - Hook LiteLLM into Open WebUI (`OPENAI_API_BASE_URLS`)
 - Restrict Ollama on jarvis to LiteLLM only

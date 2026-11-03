@@ -61,10 +61,14 @@ appco_username: "{{ vault_appco_username | default(_creds.APPCO_USERNAME | defau
 appco_token: "{{ vault_appco_token | default(_creds.APPCO_TOKEN | default('')) }}"
 # SUSE Registry (registry.suse.com) login for SUSE AI: user `regcode`, SUSE AI regcode
 suse_ai_regcode: "{{ vault_suse_ai_regcode | default(_creds.REGCODE_AI | default('')) }}"
-# Route53 creds for cert-manager DNS-01 (Let's Encrypt).
-# Empty = no ACME issuers; Open WebUI uses the chart's self-signed CA.
+# Route53 creds for Let's Encrypt DNS-01 (cert-manager on RKE2 nodes, Traefik on the LiteLLM VM).
+# Empty = no Let's Encrypt: Open WebUI uses a self-signed CA, LiteLLM stays on plain HTTP :4000.
 route53_access_key_id: "{{ vault_route53_access_key_id | default(_creds.AWS_ACCESS_KEY_ID | default('')) }}"
 route53_secret_access_key: "{{ vault_route53_secret_access_key | default(_creds.AWS_SECRET_ACCESS_KEY | default('')) }}"
+# Hosted zone for DNS-01 (cert-manager on RKE2 nodes, Traefik on the LiteLLM VM)
+acme_dns_zone: kubernerdes.com
+acme_route53_zone_id: Z03970223DJDS89C1XW4A
+acme_route53_region: us-east-1
 
 # ---- wifi (base role) ----
 wifi_networks: []           # [{ssid: foo, psk: "{{ vault_foo_psk }}"}]

@@ -39,9 +39,7 @@ cert_manager_chart_version: ""
 cert_manager_dns01_nameservers: "1.1.1.1:53,8.8.8.8:53"
 
 # ---- Let's Encrypt via Route53 DNS-01 ----
-acme_dns_zone: kubernerdes.com
-acme_route53_zone_id: Z03970223DJDS89C1XW4A
-acme_route53_region: us-east-1
+# acme_dns_zone, acme_route53_zone_id, acme_route53_region: group_vars/all
 acme_servers:
   letsencrypt-staging: https://acme-staging-v02.api.letsencrypt.org/directory
   letsencrypt-prod: https://acme-v02.api.letsencrypt.org/directory

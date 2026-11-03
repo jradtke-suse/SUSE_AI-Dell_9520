@@ -6,7 +6,7 @@ Updated 2026-11-03. **jarvis** is the long-running node and the primary host for
 
 - [x] **LiteLLM gateway** on an SL Micro 6.2 VM on nuc-00 (2026-11-03). See [06](06-litellm.md).
 - [ ] **LiteLLM follow-ups**
-  - HTTPS in front of port 4000 (e.g. Caddy/Traefik container with a Route53 DNS-01 cert for `litellm.homelab.kubernerdes.com`)
+  - [x] HTTPS: Traefik on 443, Let's Encrypt via Route53 DNS-01 (2026-11-03)
   - Hook into Open WebUI on jarvis (`OPENAI_API_BASE_URLS` + a LiteLLM virtual key)
   - Restrict Ollama on jarvis to LiteLLM only (Traefik IP allow-list for 10.10.12.13)
 - [ ] **Bigger models on jarvis.** 16 GB VRAM fits 12-14B models (e.g. `qwen2.5:14b`, `gemma2:9b`). Change `ollama_models_*` in `ansible/host_vars/jarvis.yml`, rerun `--tags ollama`.
@@ -21,7 +21,7 @@ Updated 2026-11-03. **jarvis** is the long-running node and the primary host for
 ### Both hosts
 
 - [ ] **Rotate the Application Collection token.** Exposed in chat sessions twice (2026-11-01 and 2026-11-03). Update `APPCO_TOKEN` in `~/.config/SUSE/creds` on jarvis and `vault_appco_token` in `vault/wheatley.yml`, then rerun `--tags registry` on each host.
-- [ ] **Narrow Route53 access.** jarvis and its cluster now hold the `ciol-route53` key (`~/.config/aws/creds`, plus the `route53-credentials` secret). Create one IAM user per host, limited to `_acme-challenge.*` TXT records in `kubernerdes.com` (policy in [05](05-suse-ai.md)).
+- [ ] **Narrow Route53 access (decided 2026-11-03).** Keep `ciol-route53` (broad, for AWS lab builds) on the workstation only. New IAM user `homelab-acme`, limited to `_acme-challenge.*.kubernerdes.com` TXT records, for jarvis, the litellm VM and the cert-manager secret. Then rerun `--tags cert_manager` (jarvis) and `litellm.yml`, and test a renewal against LE staging. Previously: jarvis and its cluster now hold the `ciol-route53` key (`~/.config/aws/creds`, plus the `route53-credentials` secret). Create one IAM user per host, limited to `_acme-challenge.*` TXT records in `kubernerdes.com` (policy in [05](05-suse-ai.md)).
 
 ### jarvis
 

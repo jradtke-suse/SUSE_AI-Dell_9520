@@ -1,0 +1,16 @@
+# Managed by Ansible (litellm role)
+http:
+  routers:
+    litellm:
+      rule: "Host(`{{ litellm_tls_host }}`)"
+      entryPoints: [websecure]
+      service: litellm
+      tls:
+        certResolver: le
+        domains:
+          - main: "{{ litellm_tls_host }}"
+  services:
+    litellm:
+      loadBalancer:
+        servers:
+          - url: "http://litellm:4000"
