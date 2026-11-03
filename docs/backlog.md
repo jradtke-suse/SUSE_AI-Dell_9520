@@ -4,10 +4,11 @@ Updated 2026-11-03. **jarvis** is the long-running node and the primary host for
 
 ## Next up
 
-- [ ] **LiteLLM on SLE 16 virtual machines.** Figure out running LiteLLM (an OpenAI-compatible proxy/gateway in front of Ollama and other model backends) on SLES 16 VMs.
-  - Guide reference: SUSE AI 1.0 §4.13 "Installing LiteLLM" (Application Collection chart `oci://dp.apps.rancher.io/charts/litellm`). The guide assumes Kubernetes, so a plain VM deployment is a deviation to document.
-  - Host: a VM on **nuc-00** (10.10.12.10, also the LAN's Pi-hole DNS) running **SL Micro 6.2**. The user is building the VM.
-  - Plan: LiteLLM + PostgreSQL as Podman containers (Application Collection images) run by systemd quadlets. Backend: Ollama on jarvis at https://ollama.jarvis.homelab.kubernerdes.com (done). Then hook LiteLLM into Open WebUI (`OPENAI_API_BASE_URLS`) and restrict Ollama to LiteLLM.
+- [x] **LiteLLM gateway** on an SL Micro 6.2 VM on nuc-00 (2026-11-03). See [06](06-litellm.md).
+- [ ] **LiteLLM follow-ups**
+  - HTTPS in front of port 4000 (e.g. Caddy/Traefik container with a Route53 DNS-01 cert for `litellm.homelab.kubernerdes.com`)
+  - Hook into Open WebUI on jarvis (`OPENAI_API_BASE_URLS` + a LiteLLM virtual key)
+  - Restrict Ollama on jarvis to LiteLLM only (Traefik IP allow-list for 10.10.12.13)
 - [ ] **Bigger models on jarvis.** 16 GB VRAM fits 12-14B models (e.g. `qwen2.5:14b`, `gemma2:9b`). Change `ollama_models_*` in `ansible/host_vars/jarvis.yml`, rerun `--tags ollama`.
 
 ## Optional (from the guide)

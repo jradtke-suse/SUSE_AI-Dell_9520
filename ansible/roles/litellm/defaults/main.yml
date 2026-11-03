@@ -1,0 +1,18 @@
+---
+# LiteLLM from the SUSE AI registry (registry.suse.com, login: regcode / SUSE AI regcode).
+# Not in Application Collection for this account (checked 2026-11-03).
+litellm_image: registry.suse.com/ai/containers/litellm:v1.106.6
+litellm_pg_image: dp.apps.rancher.io/containers/postgresql:17
+
+litellm_port: 4000
+litellm_dir: /etc/litellm
+# Registry logins live here (root, 0600). Podman's default is under /run, which is
+# lost on reboot.
+litellm_authfile: "{{ litellm_dir }}/auth.json"
+
+# Models served through LiteLLM. `name` is what clients ask for.
+litellm_ollama_api_base: https://ollama.jarvis.homelab.kubernerdes.com
+litellm_models:
+  - {name: "llama3.1:8b", model: "ollama_chat/llama3.1:8b", api_base: "{{ litellm_ollama_api_base }}"}
+  - {name: "llama3.2:3b", model: "ollama_chat/llama3.2:3b", api_base: "{{ litellm_ollama_api_base }}"}
+  - {name: "gemma:2b", model: "ollama_chat/gemma:2b", api_base: "{{ litellm_ollama_api_base }}"}

@@ -16,6 +16,7 @@ James Radtke (SUSE) documents and automates **SUSE AI 1.0** on single SLES 16.0 
 - Open WebUI at **https://jarvis.homelab.kubernerdes.com**, Let's Encrypt via Route53 DNS-01 (IAM user `ciol-route53`, key in `~/.config/aws/creds` on jarvis).
 - Ollama API exposed at **https://ollama.jarvis.homelab.kubernerdes.com** (Traefik ingress, Let's Encrypt; `ollama_ingress_host`) for LiteLLM on nuc-00. No auth on Ollama: LAN-reachable. DNS: Pi-hole wildcard `*.jarvis.homelab.kubernerdes.com` -> 10.10.12.250.
 - Workstation kubeconfig: `~/.kube/homelab-jarvis.kubeconfig`.
+- **LiteLLM gateway**: SL Micro 6.2 VM `litellm` (10.10.12.13) on nuc-00, `ansible-playbook litellm.yml` (group `litellm_gateways`; `site.yml` only targets `suse_ai_nodes`). LiteLLM v1.106.6 + PostgreSQL 17 as Podman quadlets; master key in `/etc/litellm/litellm.env` on the VM. See [06](06-litellm.md).
 
 ## Current state: wheatley (2026-11-01)
 
@@ -57,4 +58,4 @@ James Radtke (SUSE) documents and automates **SUSE AI 1.0** on single SLES 16.0 
 
 ## Next up
 
-LiteLLM on SLE 16 virtual machines. See [docs/backlog.md](backlog.md).
+LiteLLM follow-ups (HTTPS, Open WebUI). See [docs/backlog.md](backlog.md).

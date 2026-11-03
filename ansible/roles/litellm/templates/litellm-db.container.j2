@@ -1,0 +1,19 @@
+# Managed by Ansible (litellm role)
+[Unit]
+Description=PostgreSQL for LiteLLM
+
+[Container]
+ContainerName=litellm-db
+Image={{ litellm_pg_image }}
+Pull=never
+Network=litellm.network
+Volume=litellm-db.volume:/var/lib/postgresql/data:Z
+EnvironmentFile={{ litellm_dir }}/db.env
+HealthCmd=pg_isready -U litellm -d litellm
+HealthInterval=10s
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

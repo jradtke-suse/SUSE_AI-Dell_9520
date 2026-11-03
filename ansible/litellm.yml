@@ -1,0 +1,12 @@
+---
+# LiteLLM gateway on SL Micro 6.2: LiteLLM + PostgreSQL as Podman quadlets.
+# SUSE AI 1.0 guide §4.13 installs LiteLLM on Kubernetes; this is the VM variant.
+- name: LiteLLM gateway
+  hosts: litellm_gateways
+  pre_tasks:
+    - name: Load secrets (vault file or creds on the host)
+      ansible.builtin.import_tasks: tasks/secrets.yml
+      tags: [always]
+  roles:
+    - role: litellm
+      tags: [litellm]

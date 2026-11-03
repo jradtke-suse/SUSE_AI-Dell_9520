@@ -1,6 +1,6 @@
 # README
 
-This will provide guidance, step-by-step, on how to deploy SUSE AI 1.0 on a Dell XPS 15 9520 (hostname `wheatley`) with an NVIDIA GeForce RTX 3050 Ti Laptop GPU
+This will provide guidance, step-by-step, on how to deploy SUSE AI 1.0 on single-node SLES 16 + NVIDIA hosts: `jarvis` (RTX 4060 Ti 16 GB, primary) and `wheatley` (Dell XPS 15 9520, RTX 3050 Ti Laptop), plus a LiteLLM gateway on an SL Micro 6.2 VM
 
 **Approach:** follow "the SUSE way" wherever possible: SUSE-packaged and SUSE-signed components first (e.g. the **open** NVIDIA kernel driver as a signed KMP rather than the proprietary `.run` installer), SUSE Rancher Prime / RKE2 for Kubernetes, and the SUSE Application Collection for SUSE AI components.
 
@@ -21,9 +21,10 @@ This will provide guidance, step-by-step, on how to deploy SUSE AI 1.0 on a Dell
 | 4 | NVIDIA open driver + compute utils | [docs/03-nvidia-driver.md](docs/03-nvidia-driver.md) | `ansible` role `nvidia` | ✅ 580.178.04 |
 | 5 | Kubernetes (RKE2, single node) | [docs/04-kubernetes-rke2.md](docs/04-kubernetes-rke2.md) | `ansible` role `rke2` | ✅ v1.36.5+rke2r1 |
 | 6 | SUSE AI stack | [docs/05-suse-ai.md](docs/05-suse-ai.md) | `ansible` role `suse_ai` | ✅ Ollama (GPU) + Open WebUI |
+| 7 | LiteLLM gateway (SL Micro 6.2 VM) | [docs/06-litellm.md](docs/06-litellm.md) | `ansible-playbook litellm.yml`, role `litellm` | ✅ v1.106.6 → Ollama on jarvis |
 | – | Troubleshooting log | [docs/troubleshooting.md](docs/troubleshooting.md) | – | – |
 
-Open items and ideas: [docs/backlog.md](docs/backlog.md) (next up: LiteLLM on SLE 16 VMs).
+Open items and ideas: [docs/backlog.md](docs/backlog.md) (next up: HTTPS for LiteLLM, hook it into Open WebUI).
 
 ## Repo layout
 

@@ -1,0 +1,26 @@
+# Managed by Ansible (litellm role)
+[Unit]
+Description=LiteLLM gateway
+Requires=litellm-db.service
+After=litellm-db.service network-online.target
+Wants=network-online.target
+
+[Container]
+ContainerName=litellm
+Image={{ litellm_image }}
+Pull=never
+Network=litellm.network
+PublishPort={{ litellm_port }}:4000
+EnvironmentFile={{ litellm_dir }}/litellm.env
+Volume={{ litellm_dir }}/config.yaml:/app/config.yaml:ro,Z
+Exec=--config /app/config.yaml --port 4000
+# Don't SIGKILL during DB migrations
+StopTimeout=120
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+TimeoutStopSec=150
+
+[Install]
+WantedBy=multi-user.target

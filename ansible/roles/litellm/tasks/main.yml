@@ -1,0 +1,97 @@
+---
+# SL Micro: /etc is writable, so quadlets and config need no transactional-update.
+- name: Check registry credentials are set
+  ansible.builtin.assert:
+    that:
+      - appco_username | length > 0
+      - appco_token | length > 0
+      - suse_ai_regcode | length > 0
+    fail_msg: "Set APPCO_USERNAME, APPCO_TOKEN and REGCODE_AI in ~/.config/SUSE/creds on the host"
+  no_log: true
+
+- name: Create config dir
+  ansible.builtin.file:
+    path: "{{ litellm_dir }}"
+    state: directory
+    mode: "0700"
+
+- name: Registry logins (persistent authfile)
+  ansible.builtin.command:
+    argv: [podman, login, --authfile, "{{ litellm_authfile }}", "{{ item.server }}", -u, "{{ item.username }}", --password-stdin]
+    stdin: "{{ item.password }}"
+  loop:
+    - {server: "{{ appco_registry }}", username: "{{ appco_username }}", password: "{{ appco_token }}"}
+    - {server: "{{ suse_registry | default('registry.suse.com') }}", username: regcode, password: "{{ suse_ai_regcode }}"}
+  changed_when: false
+  no_log: true
+
+- name: Pull images
+  ansible.builtin.command: podman pull --authfile {{ litellm_authfile }} {{ item }}
+  loop: ["{{ litellm_image }}", "{{ litellm_pg_image }}"]
+  register: litellm_pull
+  changed_when: false
+
+# Generated once on the host, never leaves it. Delete both files to rotate
+# (the DB password also has to be changed inside PostgreSQL then).
+- name: Generate secrets (first run only)
+  ansible.builtin.shell: |
+    set -eu
+    umask 077
+    pw=$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')
+    key=sk-$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
+    printf 'POSTGRES_USER=litellm\nPOSTGRES_DB=litellm\nPOSTGRES_PASSWORD=%s\n' "$pw" > {{ litellm_dir }}/db.env
+    printf 'DATABASE_URL=postgresql://litellm:%s@litellm-db:5432/litellm\nLITELLM_MASTER_KEY=%s\nSTORE_MODEL_IN_DB=True\n' "$pw" "$key" > {{ litellm_dir }}/litellm.env
+  args:
+    creates: "{{ litellm_dir }}/litellm.env"
+  no_log: true
+
+# Restart on change only if it was already running. A restart right after the
+# first start kills LiteLLM mid-migration and leaves the DB in a failed state (P3009).
+- name: Is LiteLLM already running?
+  ansible.builtin.command: systemctl is-active litellm
+  register: litellm_was_active
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: LiteLLM config
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: "{{ litellm_dir }}/config.yaml"
+    mode: "0644"
+  notify: restart litellm
+
+- name: Quadlet units
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/containers/systemd/{{ item }}"
+    mode: "0644"
+  loop:
+    - litellm.network
+    - litellm-db.volume
+    - litellm-db.container
+    - litellm.container
+  register: litellm_quadlets
+  notify: restart litellm
+
+- name: Reload systemd (generates services from quadlets)
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  when: litellm_quadlets is changed
+
+- name: Start PostgreSQL and LiteLLM
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: started
+  loop: [litellm-db, litellm]
+
+- name: Restart now if config changed
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for LiteLLM
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ litellm_port }}/health/liveliness"
+  register: litellm_health
+  until: litellm_health.status == 200
+  retries: 30
+  delay: 10
