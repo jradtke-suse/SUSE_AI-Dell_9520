@@ -64,7 +64,7 @@ APPCO_TOKEN=...
 REGCODE_AI=...         # SUSE AI regcode: registry.suse.com (LiteLLM image)
 ```
 
-For HTTPS: `~/.config/aws/creds` (AWS shared credentials format, `[default]` profile, mode 600) with a key that can create `_acme-challenge` TXT records in `kubernerdes.com`. Without it, LiteLLM stays on plain HTTP port 4000.
+For HTTPS: `~/.config/aws/creds` (AWS shared credentials format, `[default]` profile, mode 600) with the `homelab-acme` key (ACME-only, see [docs/aws/homelab-acme-policy.json](aws/homelab-acme-policy.json)). Without it, LiteLLM stays on plain HTTP port 4000.
 
 **LiteLLM is not in Application Collection** for this account (no image, no chart, checked 2026-11-03). It's in the SUSE AI registry: `registry.suse.com/ai/containers/litellm`.
 

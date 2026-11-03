@@ -76,11 +76,11 @@ One name per host. The wired address is the host.
 
 ### TLS: Let's Encrypt via Route53 DNS-01
 
-- **Issuers:** ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod` answer the DNS-01 challenge in the public Route53 zone `kubernerdes.com` (`Z03970223DJDS89C1XW4A`). They use IAM user `ciol-route53`. The key is in the vault (`vault_route53_*`), and Ansible stores it in Secret `cert-manager/route53-credentials`.
+- **Issuers:** ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod` answer the DNS-01 challenge in the public Route53 zone `kubernerdes.com` (`Z03970223DJDS89C1XW4A`). They use IAM user `homelab-acme` (policy [homelab-acme-dns01](aws/homelab-acme-policy.json): only `_acme-challenge.*.kubernerdes.com` TXT records). The key comes from `~/.config/aws/creds` on the host (jarvis) or the vault (wheatley, still `ciol-route53`), and Ansible stores it in Secret `cert-manager/route53-credentials`.
 - **Public resolvers for the self-check.** cert-manager runs with `dns01RecursiveNameservers=1.1.1.1:53,8.8.8.8:53` and `dns01RecursiveNameserversOnly=true`. The LAN DNS answers `homelab.kubernerdes.com` itself, so it never sees the public `_acme-challenge` TXT record, and without this cert-manager waits forever.
 - **The certificate.** `open-webui-le` covers `wheatley.homelab.kubernerdes.com` and is stored in Secret `open-webui-le-tls`. Open WebUI uses it via `global.tls.source=secret` + `ingress.existingSecret`. cert-manager renews it automatically.
 - **Testing the flow:** `ansible-playbook site.yml --tags open_webui -e open_webui_cert_issuer=letsencrypt-staging`. To go back to the chart's self-signed CA: `-e open_webui_cert_issuer=""`.
-- **Security note:** the Route53 key now sits in the cluster, so anyone with cluster-admin can read it. A narrower IAM policy (only `kubernerdes.com`, only `_acme-challenge.*` TXT records) would limit that.
+- **Security note:** the Route53 key sits in the cluster, so anyone with cluster-admin can read it. That's why it's the ACME-only `homelab-acme` key: it can't change any other record. The broad `ciol-route53` key (AWS lab builds) stays on the workstation.
 
 **kubectl from the workstation:** `KUBECONFIG=~/.kube/homelab-wheatley.kubeconfig kubectl get pods -n suse-ai` (written by the `rke2` role).
 

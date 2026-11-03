@@ -21,7 +21,9 @@ Updated 2026-11-03. **jarvis** is the long-running node and the primary host for
 ### Both hosts
 
 - [ ] **Rotate the Application Collection token.** Exposed in chat sessions twice (2026-11-01 and 2026-11-03). Update `APPCO_TOKEN` in `~/.config/SUSE/creds` on jarvis and `vault_appco_token` in `vault/wheatley.yml`, then rerun `--tags registry` on each host.
-- [ ] **Narrow Route53 access (decided 2026-11-03).** Keep `ciol-route53` (broad, for AWS lab builds) on the workstation only. New IAM user `homelab-acme`, limited to `_acme-challenge.*.kubernerdes.com` TXT records, for jarvis, the litellm VM and the cert-manager secret. Then rerun `--tags cert_manager` (jarvis) and `litellm.yml`, and test a renewal against LE staging. Previously: jarvis and its cluster now hold the `ciol-route53` key (`~/.config/aws/creds`, plus the `route53-credentials` secret). Create one IAM user per host, limited to `_acme-challenge.*` TXT records in `kubernerdes.com` (policy in [05](05-suse-ai.md)).
+- [x] **Narrow Route53 access (2026-11-03).** IAM user `homelab-acme` with policy `homelab-acme-dns01` ([docs/aws/homelab-acme-policy.json](aws/homelab-acme-policy.json)): only CREATE/UPSERT/DELETE of TXT records named `_acme-challenge.*.kubernerdes.com`. Its key is in `~/.config/aws/creds` on jarvis and the litellm VM (and the jarvis `route53-credentials` secret). Verified: ACME TXT allowed, A record and other TXT denied; fresh certs issued on both hosts. `ciol-route53` (broad) stays on the workstation only.
+- [ ] **wheatley still has `ciol-route53`** in `vault/wheatley.yml` (`vault_route53_*`). Swap in the `homelab-acme` key when the vault password is at hand, rerun `--limit wheatley --tags cert_manager`.
+- [ ] **Let's Encrypt staging unreachable** from the LAN (TLS handshake timeout to 172.65.46.172, 2026-11-03; prod fine). `letsencrypt-staging` ClusterIssuer on jarvis isn't Ready. Recheck later; nothing depends on it.
 
 ### jarvis
 
